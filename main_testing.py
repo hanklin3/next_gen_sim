@@ -4,6 +4,7 @@ import sys
 import yaml
 
 from utils import set_sumo
+from behavior_net import Trainer
 
 
 if 'SUMO_HOME' in os.environ:
@@ -21,10 +22,22 @@ with open(path) as file:
     except yaml.YAMLError as exception:
         print(exception)
             
+
+########################################
+# Initialize the training process
+dataloaders = None
+m = Trainer(configs=configs, dataloaders=dataloaders)
+m.train_models()
+
+
+
+###############################################
+# %%
 sumo_cmd = set_sumo(configs['gui'], 
                     configs['sumocfg_file_name'], configs['max_steps'])
 print('sumo_cmd', sumo_cmd)
-# %%
+
+
 import traci
 
 traci.start(sumo_cmd)
