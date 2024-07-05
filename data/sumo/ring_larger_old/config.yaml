@@ -1,0 +1,12 @@
+full_rollout_only: true
+handcraft: 3.34
+horizon: 1000
+n_rollouts_per_step: 1
+n_steps: 10
+result_save: evaluations/e0_warm2000_skip5000_horizon1000_handcraft3.34_circ230.csv
+save_agent: true
+skip_stat_steps: 5000
+skip_vehicle_info_stat_steps: false
+tb: true
+warmup_steps: 2000
+wb: false
