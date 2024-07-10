@@ -84,7 +84,7 @@ def import_transfer_configuration(config_file):
     return config
 
 
-def set_sumo(gui, sumocfg_file_path, max_steps):
+def set_sumo(gui, sumocfg_file_path, max_steps, step_length=1.0):
     """
     Configure various parameters of SUMO
     """
@@ -102,7 +102,7 @@ def set_sumo(gui, sumocfg_file_path, max_steps):
         sumoBinary = checkBinary('sumo-gui')
     # setting the cmd command to run sumo at simulation time
     sumo_cmd = [sumoBinary, "-c", sumocfg_file_path,
-                "--no-step-log", "true", "--waiting-time-memory", str(max_steps)]
+                "--no-step-log", "true", "--waiting-time-memory", str(max_steps), "--step-length", str(step_length)]
 
     return sumo_cmd
 

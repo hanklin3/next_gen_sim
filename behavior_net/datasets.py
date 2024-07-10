@@ -4,8 +4,9 @@ import os
 import glob
 import random
 import torch
+import traci
 from torch.utils.data import Dataset, DataLoader
-from trajectory_pool import TrajectoryPool
+# from trajectory_pool import TrajectoryPool
 
 # import simulation_modeling.utils as utils
 from . import utils
@@ -16,77 +17,62 @@ class MTLTrajectoryPredictionDataset(Dataset):
     Pytorch Dataset Loader...
     """
 
-    def __init__(self, path_to_traj_data, history_length, pred_length, max_num_vehicles, is_train, dataset='AA_rdbt'):
+    def __init__(self, path_to_traj_data, history_length, pred_length, max_num_vehicles, is_train, dataset='ring',
+                 sumo_cmd = ['sumo', '-c', 'data/sumo/ring/circles.sumocfg']):
         self.history_length = history_length
         self.pred_length = pred_length
         self.max_num_vehicles = max_num_vehicles
         self.is_train = is_train
         self.dataset = dataset
+        self.max_length = 1000
+        
+        print('sumo_cmd', sumo_cmd)
+
 
         if self.dataset == 'rounD' or self.dataset == 'AA_rdbt' or self.dataset == 'ring':
             split = 'train' if is_train else 'val'
-            subfolders = sorted(os.listdir(os.path.join(path_to_traj_data, split)))
-            subsubfolders = [sorted(os.listdir(os.path.join(path_to_traj_data, split, subfolders[i]))) for i in
-                             range(len(subfolders))]
-
-            self.traj_dirs = []
-            self.each_subfolder_size = []
-            self.each_subsubfolder_size = []
-            for i in range(len(subfolders)):
-                one_video = []
-                each_subsubfolder_size_tmp = []
-                for j in range(len(subsubfolders[i])):
-                    files_list = sorted(glob.glob(os.path.join(path_to_traj_data, split, subfolders[i], subsubfolders[i][j], '*.pickle')))
-                    one_video.append(files_list)
-                    each_subsubfolder_size_tmp.append(len(files_list))
-                self.traj_dirs.append(one_video)
-                self.each_subfolder_size.append(sum([len(listElem)for listElem in one_video]))
-                self.each_subsubfolder_size.append(each_subsubfolder_size_tmp)
-
-            self.subfolder_data_proportion = [self.each_subfolder_size[i]/sum(self.each_subfolder_size) for i in range(len(self.each_subfolder_size))]
-            self.subsubfolder_data_proportion = [[self.each_subsubfolder_size[i][j]/sum(self.each_subsubfolder_size[i]) for j in range(len(self.each_subsubfolder_size[i]))] for i in range(len(self.each_subsubfolder_size))]
-
+            traci.start(sumo_cmd)
         else:
             raise NotImplementedError( 'Wrong dataset name %s (choose one from [AA_rdbt, rounD,...])' % self.dataset)
 
     def __len__(self):
         if self.dataset == 'rounD' or self.dataset == 'AA_rdbt' or self.dataset == 'ring':
-            return sum(self.each_subfolder_size)
+            return self.max_length
         else:
             raise NotImplementedError( 'Wrong dataset name %s (choose one from [AA_rdbt, rounD,...])' % self.dataset)
 
     def __getitem__(self, idx):
 
-        if self.dataset == 'rounD' or self.dataset == 'AA_rdbt' or self.dataset == 'ring':
-            subfolder_id = random.choices(range(len(self.each_subfolder_size)), weights=self.subfolder_data_proportion)[0]
-            subsubfolder_id = random.choices(range(len(self.traj_dirs[subfolder_id])), weights=self.subsubfolder_data_proportion[subfolder_id])[0]
-            datafolder_dirs = self.traj_dirs[subfolder_id][subsubfolder_id]
+        # if self.dataset == 'rounD' or self.dataset == 'AA_rdbt' or self.dataset == 'ring':
+        #     subfolder_id = random.choices(range(len(self.each_subfolder_size)), weights=self.subfolder_data_proportion)[0]
+        #     subsubfolder_id = random.choices(range(len(self.traj_dirs[subfolder_id])), weights=self.subsubfolder_data_proportion[subfolder_id])[0]
+        #     datafolder_dirs = self.traj_dirs[subfolder_id][subsubfolder_id]
 
-            idx_start = self.history_length + 1
-            idx_end = len(datafolder_dirs) - self.pred_length - 1
-            idx = random.randint(idx_start, idx_end)
-        else:
-            raise NotImplementedError( 'Wrong dataset name %s (choose one from [AA_rdbt, rounD,...])' % self.dataset)
+        #     idx_start = self.history_length + 1
+        #     idx_end = len(datafolder_dirs) - self.pred_length - 1
+        #     idx = random.randint(idx_start, idx_end)
+        # else:
+        #     raise NotImplementedError( 'Wrong dataset name %s (choose one from [AA_rdbt, rounD,...])' % self.dataset)
 
-        traj_pool = self.fill_in_traj_pool(t0=idx, datafolder_dirs=datafolder_dirs)
-        buff_lat, buff_lon, buff_cos_heading, buff_sin_heading = traj_pool.flatten_trajectory(
-            max_num_vehicles=self.max_num_vehicles, time_length=self.history_length+self.pred_length)
+        # traj_pool = self.fill_in_traj_pool(t0=idx, datafolder_dirs=datafolder_dirs)
+        # buff_lat, buff_lon, buff_cos_heading, buff_sin_heading = traj_pool.flatten_trajectory(
+        #     max_num_vehicles=self.max_num_vehicles, time_length=self.history_length+self.pred_length)
 
-        input_matrix, gt_matrix = self.make_training_data_pair(buff_lat, buff_lon, buff_cos_heading, buff_sin_heading)
+        # input_matrix, gt_matrix = self.make_training_data_pair(buff_lat, buff_lon, buff_cos_heading, buff_sin_heading)
 
-        input_matrix = torch.tensor(input_matrix, dtype=torch.float32)
-        gt_matrix = torch.tensor(gt_matrix, dtype=torch.float32)
-        data = {'input': input_matrix, 'gt': gt_matrix}
+        # input_matrix = torch.tensor(input_matrix, dtype=torch.float32)
+        # gt_matrix = torch.tensor(gt_matrix, dtype=torch.float32)
+        # data = {'input': input_matrix, 'gt': gt_matrix}
 
         return data
 
-    def fill_in_traj_pool(self, t0, datafolder_dirs):
-        # read frames within a time interval
-        traj_pool = TrajectoryPool()
-        for i in range(t0-self.history_length+1, t0+self.pred_length+1):
-            vehicle_list = pickle.load(open(datafolder_dirs[i], "rb"))
-            traj_pool.update(vehicle_list)
-        return traj_pool
+    # def fill_in_traj_pool(self, t0, datafolder_dirs):
+    #     # read frames within a time interval
+    #     traj_pool = TrajectoryPool()
+    #     for i in range(t0-self.history_length+1, t0+self.pred_length+1):
+    #         vehicle_list = pickle.load(open(datafolder_dirs[i], "rb"))
+    #         traj_pool.update(vehicle_list)
+    #     return traj_pool
 
     def make_training_data_pair(self, buff_lat, buff_lon, buff_cos_heading, buff_sin_heading):
 
@@ -143,13 +129,13 @@ class MTLTrajectoryPredictionDataset(Dataset):
         return augmented_input
 
 
-def get_loaders(configs):
+def get_loaders(configs, sumo_cmd):
 
     if configs["dataset"] == 'AA_rdbt' or configs["dataset"] == 'rounD' or configs["dataset"] == 'ring':
         training_set = MTLTrajectoryPredictionDataset(path_to_traj_data=configs["path_to_traj_data"], history_length=configs["history_length"], pred_length=configs["pred_length"],
-                                                      max_num_vehicles=configs["max_num_vehicles"], is_train=True, dataset=configs["dataset"])
+                                                      max_num_vehicles=configs["max_num_vehicles"], is_train=True, dataset=configs["dataset"], sumo_cmd=sumo_cmd)
         val_set = MTLTrajectoryPredictionDataset(path_to_traj_data=configs["path_to_traj_data"], history_length=configs["history_length"], pred_length=configs["pred_length"],
-                                                 max_num_vehicles=configs["max_num_vehicles"], is_train=False, dataset=configs["dataset"])
+                                                 max_num_vehicles=configs["max_num_vehicles"], is_train=False, dataset=configs["dataset"], sumo_cmd=sumo_cmd)
     else:
         raise NotImplementedError(
             'Wrong dataset name %s (choose one from [AA_rdbt, rounD,...])'

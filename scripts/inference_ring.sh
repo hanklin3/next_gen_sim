@@ -1,1 +1,1 @@
-python run_inference.py --experiment-name ring --folder-idx 1 --config ./configs/ring_inference.yml --viz-flag
+python main_testing.py --experiment-name ring --config ./configs/ring_inference.yml

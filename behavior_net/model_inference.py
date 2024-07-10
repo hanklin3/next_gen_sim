@@ -68,13 +68,13 @@ class Predictor(object):
 
         return net_safety_mapper
     
-    def run_forwardpass(self, traj_pool):
+    def run_forwardpass(self, buff_lat, buff_lon, buff_cos_heading, buff_sin_heading):
         """
         Flatten a trajectory pool and run forward pass...
         """
 
-        buff_lat, buff_lon, buff_cos_heading, buff_sin_heading, buff_vid = traj_pool.flatten_trajectory(
-            time_length=self.history_length, max_num_vehicles=self.m_tokens, output_vid=True)
+        # buff_lat, buff_lon, buff_cos_heading, buff_sin_heading, buff_vid = traj_pool.flatten_trajectory(
+        #     time_length=self.history_length, max_num_vehicles=self.m_tokens, output_vid=True)
 
         buff_lat = utils.nan_intep_2d(buff_lat, axis=1)
         buff_lon = utils.nan_intep_2d(buff_lon, axis=1)
@@ -95,7 +95,7 @@ class Predictor(object):
         pred_mean_pos = mean_pos.detach().cpu().numpy()[0, :, :]
         pred_std_pos = std_pos.detach().cpu().numpy()[0, :, :]
         pred_cos_sin_heading = cos_sin_heading.detach().cpu().numpy()[0, :, :]
-        pred_vid = buff_vid
+        # pred_vid = buff_vid
 
         pred_lat_mean = pred_mean_pos[:, 0:self.pred_length].astype(np.float64)
         pred_lon_mean = pred_mean_pos[:, self.pred_length:].astype(np.float64)
@@ -106,7 +106,9 @@ class Predictor(object):
 
         pred_lat, pred_lon = self.sampling(pred_lat_mean, pred_lon_mean, pred_lat_std, pred_lon_std)
 
-        return pred_lat, pred_lon, pred_cos_heading, pred_sin_heading, pred_vid, buff_vid, buff_lat, buff_lon
+        # return pred_lat, pred_lon, pred_cos_heading, pred_sin_heading, pred_vid, buff_vid, buff_lat, buff_lon
+        return pred_lat, pred_lon, pred_cos_heading, pred_sin_heading, buff_lat, buff_lon
+
 
     def do_safety_mapping(self, pred_lat, pred_lon, pred_cos_heading, pred_sin_heading, pred_vid, buff_vid, output_delta_position_mask=False):
         # Neural safety mapping
@@ -124,3 +126,16 @@ class Predictor(object):
             return pred_lat, pred_lon, pred_cos_heading, pred_sin_heading, pred_vid, delta_position_mask
 
         return pred_lat, pred_lon, pred_cos_heading, pred_sin_heading, pred_vid
+    
+    def sampling(self, pred_lat_mean, pred_lon_mean, pred_lat_std, pred_lon_std):
+        """
+        Sample a trajectory from predicted mean and std.
+        """
+
+        epsilons_lat = np.reshape([random.gauss(0, 1) for _ in range(self.m_tokens)], [-1, 1])
+        epsilons_lon = np.reshape([random.gauss(0, 1) for _ in range(self.m_tokens)], [-1, 1])
+
+        pred_lat = pred_lat_mean + epsilons_lat * pred_lat_std
+        pred_lon = pred_lon_mean + epsilons_lon * pred_lon_std
+
+        return pred_lat, pred_lon
