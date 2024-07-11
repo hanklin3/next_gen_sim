@@ -4,4 +4,5 @@
        
        <additional-files value="add.xml"/>
     </input>
+    <logger name="traci" level="WARN"/>
 </configuration>

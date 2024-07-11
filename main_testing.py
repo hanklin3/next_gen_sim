@@ -10,7 +10,7 @@ from utils import set_sumo
 from behavior_net.model_inference import Predictor
 from trajectory_pool import TrajectoryPool
 from vehicle import Vehicle
-
+from utils import time_buff_to_traj_pool, to_vehicle
 
 if 'SUMO_HOME' in os.environ:
     sys.path.append(os.path.join(os.environ['SUMO_HOME'], 'tools'))
@@ -18,15 +18,6 @@ if 'SUMO_HOME' in os.environ:
 sumo_binary = os.path.join(os.environ['SUMO_HOME'], 'bin', 'sumo')
 sumo_cmd = ['sumo', '-c', 'data/sumo/ring/circles.sumocfg', '--step-length', "0.4"]
 
-path = 'configs/ring_inference.yml'
-
-with open(path) as file:
-    try:
-        configs = yaml.safe_load(file)
-        print(f"Loading config file: {path}")
-    except yaml.YAMLError as exception:
-        print(exception)
-            
 parser = argparse.ArgumentParser()
 parser.add_argument('--experiment-name', type=str, required=True,
                     help='The name of the experiment folder where the data will be stored')
@@ -35,6 +26,17 @@ parser.add_argument('--save-result-path', type=str, default=r'./results/training
 parser.add_argument('--config', type=str, required=True,
                     help='The path to the training config file. E.g., ./configs\ring_inference.yml')
 args = parser.parse_args()
+
+path = 'configs/ring_inference.yml'
+
+with open(args.config) as file:
+    try:
+        configs = yaml.safe_load(file)
+        print(f"Loading config file: {args.config}")
+    except yaml.YAMLError as exception:
+        print(exception)
+            
+
 
 save_result_path = args.save_result_path
 experiment_name = args.experiment_name
@@ -54,26 +56,26 @@ def converter(x, y, angles_deg):
     return lat, lon, cos_heading, sin_heading
 
 
-def to_vehicle(x, y, angle_deg, id, speed, road_id, lane_id, lane_index):
+# def to_vehicle(x, y, angle_deg, id, speed, road_id, lane_id, lane_index):
 
-    v = Vehicle()
-    v.location.x = x
-    v.location.y = y
-    v.id = id
-    # sumo: north, clockwise
-    # yours: east, counterclockwise
-    v.speed_heading = (-angle_deg + 90 ) % 360
-    v.speed = speed
-    v.road_id = road_id
-    v.lane_id = lane_id
-    v.lane_index = lane_index
+#     v = Vehicle()
+#     v.location.x = x
+#     v.location.y = y
+#     v.id = id
+#     # sumo: north, clockwise
+#     # yours: east, counterclockwise
+#     v.speed_heading = (-angle_deg + 90 ) % 360
+#     v.speed = speed
+#     v.road_id = road_id
+#     v.lane_id = lane_id
+#     v.lane_index = lane_index
 
-    factor = 1
-    v.size.length, v.size.width = 3.6*factor, 1.8*factor
-    v.safe_size.length, v.safe_size.width = 3.8*factor, 2.0*factor
-    v.update_poly_box_and_realworld_4_vertices()
-    v.update_safe_poly_box()
-    return v
+#     factor = 1
+#     v.size.length, v.size.width = 3.6*factor, 1.8*factor
+#     v.safe_size.length, v.safe_size.width = 3.8*factor, 2.0*factor
+#     v.update_poly_box_and_realworld_4_vertices()
+#     v.update_safe_poly_box()
+#     return v
 
 ########################################
 # Initialize the predictor process
@@ -85,6 +87,7 @@ model.initialize_net_G()
 model.initialize_net_safety_mapper()
 
 traj_pool = TrajectoryPool()
+
 
 # veh_num = configs['m_tokens']
 # time_length = configs['pred_length']
@@ -112,8 +115,13 @@ import traci
 
 traci.start(sumo_cmd)
 # %%
+
+TIME_BUFF = []
+rolling_step = configs['rolling_step']
+history_length = configs['history_length']
+
 step = 0
-while step < 600:
+while step < 1000:
     print(step)
 
     traci.simulationStep()
@@ -139,17 +147,23 @@ while step < 600:
         # print('lat, lon, cos_heading, sin_heading', 
         #       lat, lon, cos_heading, sin_heading)
         vehicle_list.append(to_vehicle(x, y, angle_deg, car_id, speed, road_id, lane_id, lane_index))
-
-    traj_pool.update(vehicle_list)
-    
-    if step < 10:
+        
+    TIME_BUFF.append(vehicle_list)
+        
+    if step < history_length:
         continue
     
-    buff_lat, buff_lon, buff_cos_heading, buff_sin_heading, buff_vid, buff_road_id, buff_lane_id, buff_lane_index = \
+    assert len(TIME_BUFF) == history_length
+    traj_pool = time_buff_to_traj_pool(TIME_BUFF)
+    
+    buff_lat, buff_lon, buff_cos_heading, buff_sin_heading, \
+        buff_vid, buff_speed, buff_road_id, buff_lane_id, buff_lane_index = \
         traj_pool.flatten_trajectory(
         time_length=model.history_length, max_num_vehicles=model.m_tokens, output_vid=True)
     pred_lat, pred_lon, pred_cos_heading, pred_sin_heading, buff_lat, buff_lon = \
         model.run_forwardpass(buff_lat, buff_lon, buff_cos_heading, buff_sin_heading)
+        
+    TIME_BUFF = TIME_BUFF[rolling_step:]
 
     print('pred_lat', pred_lat.shape, pred_lat)
     print('buff_vid', buff_vid.shape, buff_vid)
@@ -164,14 +178,24 @@ while step < 600:
         dx = np.diff(buff_lat[row_idx,:])
         dy = np.diff(buff_lon[row_idx,:])
         speed = np.sqrt(dx**2 + dy**2) / configs['sim_resol']
+        # speed = np.max(dx / configs['sim_resol'], dy / configs['sim_resol'])
         # speed = [0]
+        print('dx', dx.shape, dx)
         print('speed', speed)
-        # traci.vehicle.setSpeed(str(int(vid)), speed[0])
+        # assert speed[0] > 0, (speed, buff_lat[row_idx,:], buff_lon[row_idx,:])
         
+        traci.vehicle.setSpeed(str(int(vid)), speed[0])
+        
+        dx = np.diff(buff_lat[row_idx,:], n=2)
+        dy = np.diff(buff_lon[row_idx,:], n=2)
+        acceleration = np.sqrt(dx**2 + dy**2) / configs['sim_resol']
+        
+        print('acceleration', acceleration)
+        # traci.vehicle.setAccel(str(int(vid)), acceleration[0])
 
-        traci.vehicle.moveToXY(str(int(vid)), buff_road_id[row_idx, 1].decode('utf-8'), 
-                        buff_lane_index[row_idx, 1], 
-                        x=buff_lat[row_idx,1], y=buff_lon[row_idx,1])
+        # traci.vehicle.moveToXY(str(int(vid)), buff_road_id[row_idx, 1].decode('utf-8'), 
+        #                 buff_lane_index[row_idx, 1], 
+        #                 x=buff_lat[row_idx,1], y=buff_lon[row_idx,1])
         # traci.vehicle.moveToXY(str(int(vid)), buff_road_id[row_idx, 0].decode('utf-8'), 
         #         0, 
         #         x=buff_lat[row_idx,1], y=buff_lon[row_idx,1])

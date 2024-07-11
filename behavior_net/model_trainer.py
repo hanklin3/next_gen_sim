@@ -372,6 +372,7 @@ class Trainer(object):
         self.G_adv_loss = 0.1*self.gan_loss(D_pred_fake_filtered, True)
 
         self.batch_loss_G = self.reg_loss_position + self.reg_loss_heading + self.G_adv_loss
+        print('self.batch_loss_G', self.batch_loss_G)
 
     def _compute_loss_D(self):
 

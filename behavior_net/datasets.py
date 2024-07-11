@@ -4,12 +4,17 @@ import os
 import glob
 import random
 import torch
+
+import logging
+logging.basicConfig(level=logging.WARNING)
 import traci
+
 from torch.utils.data import Dataset, DataLoader
 # from trajectory_pool import TrajectoryPool
 
 # import simulation_modeling.utils as utils
 from . import utils
+from utils import time_buff_to_traj_pool, to_vehicle
 
 
 class MTLTrajectoryPredictionDataset(Dataset):
@@ -25,19 +30,21 @@ class MTLTrajectoryPredictionDataset(Dataset):
         self.is_train = is_train
         self.dataset = dataset
         self.max_length = 1000
+        self.TIME_BUFF = []
+        self.sumo_cmd = sumo_cmd
         
         print('sumo_cmd', sumo_cmd)
 
 
         if self.dataset == 'rounD' or self.dataset == 'AA_rdbt' or self.dataset == 'ring':
             split = 'train' if is_train else 'val'
-            traci.start(sumo_cmd)
+            # traci.start(sumo_cmd)
         else:
             raise NotImplementedError( 'Wrong dataset name %s (choose one from [AA_rdbt, rounD,...])' % self.dataset)
 
     def __len__(self):
         if self.dataset == 'rounD' or self.dataset == 'AA_rdbt' or self.dataset == 'ring':
-            return self.max_length
+            return self.max_length - (self.history_length+self.pred_length)
         else:
             raise NotImplementedError( 'Wrong dataset name %s (choose one from [AA_rdbt, rounD,...])' % self.dataset)
 
@@ -63,6 +70,61 @@ class MTLTrajectoryPredictionDataset(Dataset):
         # input_matrix = torch.tensor(input_matrix, dtype=torch.float32)
         # gt_matrix = torch.tensor(gt_matrix, dtype=torch.float32)
         # data = {'input': input_matrix, 'gt': gt_matrix}
+        
+        traci.start(self.sumo_cmd)
+
+        step = 0
+        while step < self.max_length:
+            # print(step)
+
+            traci.simulationStep()
+            
+            step += 1
+            
+            if step < idx:
+                continue
+
+            car_list = traci.vehicle.getIDList()
+            vehicle_list = []
+            
+            for car_id in car_list:
+                x,y = traci.vehicle.getPosition(car_id)
+                angle_deg = traci.vehicle.getAngle(car_id)
+                speed = traci.vehicle.getSpeed(car_id)
+                road_id = traci.vehicle.getRoadID(car_id)
+                lane_id = traci.vehicle.getLaneID(car_id)
+                lane_index = traci.vehicle.getLaneIndex(car_id)
+                # speed = traci.getSpeed(car_id)
+                # print(car_id, '(', x, y, ')', angle_deg, road_id, lane_index)
+                # print('road_id, lane_id', road_id, lane_index, type(road_id), type(lane_index))
+
+                # lat, lon, cos_heading, sin_heading = converter(x, y, angle_deg)
+                # print('lat, lon, cos_heading, sin_heading', 
+                #       lat, lon, cos_heading, sin_heading)
+                vehicle_list.append(to_vehicle(x, y, angle_deg, car_id, speed, road_id, lane_id, lane_index))
+                
+            self.TIME_BUFF.append(vehicle_list)
+                
+            if len(self.TIME_BUFF) < self.history_length+self.pred_length:
+                continue
+            
+            assert len(self.TIME_BUFF) >= self.history_length + self.pred_length, len(self.TIME_BUFF)
+            traj_pool = time_buff_to_traj_pool(self.TIME_BUFF)
+            
+            buff_lat, buff_lon, buff_cos_heading, buff_sin_heading, \
+                buff_vid, buff_speed, buff_road_id, buff_lane_id, buff_lane_index = \
+                traj_pool.flatten_trajectory(
+                time_length=self.history_length+self.pred_length, max_num_vehicles=self.max_num_vehicles, output_vid=True)
+
+            input_matrix, gt_matrix = self.make_training_data_pair(buff_lat, buff_lon, buff_cos_heading, buff_sin_heading, buff_speed)
+
+            input_matrix = torch.tensor(input_matrix, dtype=torch.float32)
+            gt_matrix = torch.tensor(gt_matrix, dtype=torch.float32)
+            data = {'input': input_matrix, 'gt': gt_matrix}
+            
+            break
+            
+        traci.close()
 
         return data
 
@@ -74,7 +136,7 @@ class MTLTrajectoryPredictionDataset(Dataset):
     #         traj_pool.update(vehicle_list)
     #     return traj_pool
 
-    def make_training_data_pair(self, buff_lat, buff_lon, buff_cos_heading, buff_sin_heading):
+    def make_training_data_pair(self, buff_lat, buff_lon, buff_cos_heading, buff_sin_heading, buff_speed):
 
         buff_lat_in = buff_lat[:, 0:self.history_length]
         buff_lat_out = buff_lat[:, self.history_length:]
@@ -84,6 +146,7 @@ class MTLTrajectoryPredictionDataset(Dataset):
         buff_cos_heading_out = buff_cos_heading[:, self.history_length:]
         buff_sin_heading_in = buff_sin_heading[:, 0:self.history_length]
         buff_sin_heading_out = buff_sin_heading[:, self.history_length:]
+        buff_speed_out = buff_speed[:, self.history_length:]
 
         buff_lat_in = utils.nan_intep_2d(buff_lat_in, axis=1)
         buff_lon_in = utils.nan_intep_2d(buff_lon_in, axis=1)
@@ -91,7 +154,7 @@ class MTLTrajectoryPredictionDataset(Dataset):
         buff_sin_heading_in = utils.nan_intep_2d(buff_sin_heading_in, axis=1)
 
         input_matrix = np.concatenate([buff_lat_in, buff_lon_in, buff_cos_heading_in, buff_sin_heading_in], axis=1)
-        gt_matrix = np.concatenate([buff_lat_out, buff_lon_out, buff_cos_heading_out, buff_sin_heading_out], axis=1)
+        gt_matrix = np.concatenate([buff_speed_out, buff_lon_out, buff_cos_heading_out, buff_sin_heading_out], axis=1)
 
         # # mask-out those output traj whose input is nan
         gt_matrix[np.isnan(input_matrix).sum(1) > 0, :] = np.nan

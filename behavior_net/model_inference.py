@@ -105,6 +105,14 @@ class Predictor(object):
         pred_sin_heading = pred_cos_sin_heading[:, self.pred_length:].astype(np.float64)
 
         pred_lat, pred_lon = self.sampling(pred_lat_mean, pred_lon_mean, pred_lat_std, pred_lon_std)
+        # pred_lat = pred_lat_mean
+        # pred_lon = pred_lon_mean
+        
+        # print('mean_pos', mean_pos.shape, mean_pos)
+        # print('pred_lat_mean', pred_lat_mean.shape, pred_lat_mean)
+        # print('pred_lat', pred_lat.shape, pred_lat)
+        
+        # import pdb; pdb.set_trace()
 
         # return pred_lat, pred_lon, pred_cos_heading, pred_sin_heading, pred_vid, buff_vid, buff_lat, buff_lon
         return pred_lat, pred_lon, pred_cos_heading, pred_sin_heading, buff_lat, buff_lon

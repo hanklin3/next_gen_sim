@@ -41,6 +41,7 @@ class TrajectoryPool(object):
             if v.id not in self.pool.keys():
                 self.pool[v.id] = {'vid': [str(v.id)], 'update': False, 'vehicle': [v], 'dt': [1], 't': [self.t_latest], 'missing_days': 0,
                                    'x': [v.location.x], 'y': [v.location.y], 'heading': [v.speed_heading],
+                                   'speed': [v.speed],
                                    'region_position': [v.region_position if ROI_matching else None],
                                    'yielding_area': [v.yielding_area if ROI_matching else None], 'at_circle_lane': [v.at_circle_lane if ROI_matching else None]}
             else:
@@ -56,6 +57,7 @@ class TrajectoryPool(object):
                 self.pool[v.id]['region_position'].append(v.region_position if ROI_matching else None)
                 self.pool[v.id]['yielding_area'].append(v.yielding_area if ROI_matching else None)
                 self.pool[v.id]['at_circle_lane'].append(v.at_circle_lane if ROI_matching else None)
+                self.pool[v.id]['speed'].append(v.speed)
 
         # remove dead traj id (missing for a long time)
         for vid, value in self.pool.copy().items():
@@ -79,6 +81,8 @@ class TrajectoryPool(object):
         buff_sin_heading[:] = np.nan
         buff_vid = np.empty([veh_num, time_length])
         buff_vid[:] = np.nan
+        buff_speed = np.empty([veh_num, time_length])
+        buff_speed[:] = np.nan
         buff_road_id = np.empty([veh_num, time_length], dtype=np.dtype('a16'))
         buff_road_id[:] = np.nan
         buff_lane_id = np.empty([veh_num, time_length], dtype=np.dtype('a16'))
@@ -94,6 +98,7 @@ class TrajectoryPool(object):
             for j in range(len(ts)):
                 lat, lon = vs[j].location.x, vs[j].location.y
                 heading = np.radians(vs[j].speed_heading)  # Convert degrees to radians
+                speed = vs[j].speed
                 if lat is None:
                     continue
                 t = self.t_latest - ts[j]
@@ -103,6 +108,10 @@ class TrajectoryPool(object):
                 buff_lon[i, t] = lon
                 buff_cos_heading[i, t] = np.cos(heading)
                 buff_sin_heading[i, t] = np.sin(heading)
+                buff_speed[i, t] = speed
+                buff_road_id[i, t] = vs[j].road_id
+                buff_lane_id[i, t] = vs[j].lane_id
+                buff_lane_index[i, t] = vs[j].lane_index
             i += 1
 
         # fill-in id buffer
@@ -110,9 +119,9 @@ class TrajectoryPool(object):
         for _, traj in self.pool.items():
             vs = traj['vehicle']
             buff_vid[i, :] = vs[-1].id
-            buff_road_id[i, :] = vs[-1].road_id
-            buff_lane_id[i, :] = vs[-1].lane_id
-            buff_lane_index[i, :] = vs[-1].lane_index
+            # buff_road_id[i, :] = vs[-1].road_id
+            # buff_lane_id[i, :] = vs[-1].lane_id
+            # buff_lane_index[i, :] = vs[-1].lane_index
             i += 1
 
         buff_lat = buff_lat[:, ::-1]
@@ -126,10 +135,14 @@ class TrajectoryPool(object):
         buff_cos_heading = self._fixed_num_vehicles(buff_cos_heading, max_num_vehicles)
         buff_sin_heading = self._fixed_num_vehicles(buff_sin_heading, max_num_vehicles)
         buff_vid = self._fixed_num_vehicles(buff_vid, max_num_vehicles)
+        buff_speed = self._fixed_num_vehicles(buff_speed, max_num_vehicles)
+        buff_road_id = self._fixed_num_vehicles(buff_road_id, max_num_vehicles)
+        buff_lane_id = self._fixed_num_vehicles(buff_lane_id, max_num_vehicles)
+        buff_lane_index = self._fixed_num_vehicles(buff_lane_index, max_num_vehicles)
 
         if output_vid:
             return buff_lat, buff_lon, buff_cos_heading, buff_sin_heading, \
-                buff_vid, buff_road_id, buff_lane_id, buff_lane_index
+                buff_vid, buff_speed, buff_road_id, buff_lane_id, buff_lane_index
         else:
             return buff_lat, buff_lon, buff_cos_heading, buff_sin_heading
 

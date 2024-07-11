@@ -3,6 +3,38 @@ from sumolib import checkBinary
 import os
 import sys
 
+from trajectory_pool import TrajectoryPool
+from vehicle import Vehicle
+
+
+def time_buff_to_traj_pool(TIME_BUFF):
+    traj_pool = TrajectoryPool()
+    for i in range(len(TIME_BUFF)):
+        traj_pool.update(TIME_BUFF[i])
+    return traj_pool
+
+
+def to_vehicle(x, y, angle_deg, id, speed, road_id, lane_id, lane_index):
+
+    v = Vehicle()
+    v.location.x = x
+    v.location.y = y
+    v.id = id
+    # sumo: north, clockwise
+    # yours: east, counterclockwise
+    v.speed_heading = (-angle_deg + 90 ) % 360
+    v.speed = speed
+    v.road_id = road_id
+    v.lane_id = lane_id
+    v.lane_index = lane_index
+
+    factor = 1
+    v.size.length, v.size.width = 3.6*factor, 1.8*factor
+    v.safe_size.length, v.safe_size.width = 3.8*factor, 2.0*factor
+    v.update_poly_box_and_realworld_4_vertices()
+    v.update_safe_poly_box()
+    return v
+
 
 def import_train_configuration(config_file):
     """
