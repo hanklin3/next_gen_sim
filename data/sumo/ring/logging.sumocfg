@@ -1,0 +1,3 @@
+<configuration>
+    <logger name="traci" level="WARN"/>
+</configuration>
