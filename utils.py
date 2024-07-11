@@ -14,7 +14,7 @@ def time_buff_to_traj_pool(TIME_BUFF):
     return traj_pool
 
 
-def to_vehicle(x, y, angle_deg, id, speed, road_id, lane_id, lane_index):
+def to_vehicle(x, y, angle_deg, id, speed, road_id, lane_id, lane_index, acceleration):
 
     v = Vehicle()
     v.location.x = x
@@ -27,6 +27,7 @@ def to_vehicle(x, y, angle_deg, id, speed, road_id, lane_id, lane_index):
     v.road_id = road_id
     v.lane_id = lane_id
     v.lane_index = lane_index
+    v.acceleration = acceleration
 
     factor = 1
     v.size.length, v.size.width = 3.6*factor, 1.8*factor

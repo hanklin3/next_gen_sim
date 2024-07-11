@@ -94,6 +94,7 @@ class Vehicle(object):
         self.road_id = None
         self.lane_id = None
         self.lane_index = None
+        self.acceleration = None
 
     def update_poly_box_and_realworld_4_vertices(self):
         """

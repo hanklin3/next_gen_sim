@@ -83,6 +83,8 @@ class TrajectoryPool(object):
         buff_vid[:] = np.nan
         buff_speed = np.empty([veh_num, time_length])
         buff_speed[:] = np.nan
+        buff_acc = np.empty([veh_num, time_length])
+        buff_acc[:] = np.nan
         buff_road_id = np.empty([veh_num, time_length], dtype=np.dtype('a16'))
         buff_road_id[:] = np.nan
         buff_lane_id = np.empty([veh_num, time_length], dtype=np.dtype('a16'))
@@ -99,6 +101,7 @@ class TrajectoryPool(object):
                 lat, lon = vs[j].location.x, vs[j].location.y
                 heading = np.radians(vs[j].speed_heading)  # Convert degrees to radians
                 speed = vs[j].speed
+                acceleration = vs[j].acceleration
                 if lat is None:
                     continue
                 t = self.t_latest - ts[j]
@@ -109,6 +112,7 @@ class TrajectoryPool(object):
                 buff_cos_heading[i, t] = np.cos(heading)
                 buff_sin_heading[i, t] = np.sin(heading)
                 buff_speed[i, t] = speed
+                buff_acc[i, t] = acceleration
                 buff_road_id[i, t] = vs[j].road_id
                 buff_lane_id[i, t] = vs[j].lane_id
                 buff_lane_index[i, t] = vs[j].lane_index
@@ -136,13 +140,14 @@ class TrajectoryPool(object):
         buff_sin_heading = self._fixed_num_vehicles(buff_sin_heading, max_num_vehicles)
         buff_vid = self._fixed_num_vehicles(buff_vid, max_num_vehicles)
         buff_speed = self._fixed_num_vehicles(buff_speed, max_num_vehicles)
+        buff_acc = self._fixed_num_vehicles(buff_acc, max_num_vehicles)
         buff_road_id = self._fixed_num_vehicles(buff_road_id, max_num_vehicles)
         buff_lane_id = self._fixed_num_vehicles(buff_lane_id, max_num_vehicles)
         buff_lane_index = self._fixed_num_vehicles(buff_lane_index, max_num_vehicles)
 
         if output_vid:
             return buff_lat, buff_lon, buff_cos_heading, buff_sin_heading, \
-                buff_vid, buff_speed, buff_road_id, buff_lane_id, buff_lane_index
+                buff_vid, buff_speed, buff_acc, buff_road_id, buff_lane_id, buff_lane_index
         else:
             return buff_lat, buff_lon, buff_cos_heading, buff_sin_heading
 
