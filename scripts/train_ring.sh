@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -n 2 --gres=gpu:volta:1 -o results/training/behavior_net/ring_speed_acc.log-%j
+#SBATCH -n 4 --gres=gpu:volta:1 -o results/training/behavior_net/ring_speed_acc.log-%j
 
 source /etc/profile
 source activate NNDE

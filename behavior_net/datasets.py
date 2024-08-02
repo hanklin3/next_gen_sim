@@ -22,7 +22,7 @@ class MTLTrajectoryPredictionDataset(Dataset):
     Pytorch Dataset Loader...
     """
 
-    def __init__(self, path_to_traj_data, history_length, pred_length, max_num_vehicles, is_train, dataset='ring',
+    def __init__(self, history_length, pred_length, max_num_vehicles, is_train, dataset='ring',
                  sumo_cmd = ['sumo', '-c', 'data/sumo/ring/circles.sumocfg']):
         self.history_length = history_length
         self.pred_length = pred_length
@@ -198,9 +198,9 @@ class MTLTrajectoryPredictionDataset(Dataset):
 def get_loaders(configs, sumo_cmd):
 
     if configs["dataset"] == 'AA_rdbt' or configs["dataset"] == 'rounD' or configs["dataset"] == 'ring':
-        training_set = MTLTrajectoryPredictionDataset(path_to_traj_data=configs["path_to_traj_data"], history_length=configs["history_length"], pred_length=configs["pred_length"],
+        training_set = MTLTrajectoryPredictionDataset(history_length=configs["history_length"], pred_length=configs["pred_length"],
                                                       max_num_vehicles=configs["max_num_vehicles"], is_train=True, dataset=configs["dataset"], sumo_cmd=sumo_cmd)
-        val_set = MTLTrajectoryPredictionDataset(path_to_traj_data=configs["path_to_traj_data"], history_length=configs["history_length"], pred_length=configs["pred_length"],
+        val_set = MTLTrajectoryPredictionDataset(history_length=configs["history_length"], pred_length=configs["pred_length"],
                                                  max_num_vehicles=configs["max_num_vehicles"], is_train=False, dataset=configs["dataset"], sumo_cmd=sumo_cmd)
     else:
         raise NotImplementedError(
