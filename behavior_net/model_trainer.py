@@ -165,9 +165,9 @@ class Trainer(object):
         self.running_loss_G_adv.append(self.G_adv_loss.item())
 
         if self.is_training:
-            m_batches, idx_data = len(self.dataloaders['train'])
+            m_batches = len(self.dataloaders['train'])
         else:
-            m_batches, idx_data = len(self.dataloaders['val'])
+            m_batches = len(self.dataloaders['val'])
 
         if np.mod(self.batch_id, 100) == 1:
             print('Is_training: %s. epoch [%d,%d], batch [%d,%d], reg_loss_pos: %.5f, reg_loss_heading: %.5f, '

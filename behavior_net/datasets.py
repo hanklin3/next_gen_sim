@@ -76,6 +76,13 @@ class MTLTrajectoryPredictionDataset(Dataset):
         # return data
     
     def __getitem__(self, idx):
+        """
+        Extract timesteps id-self.history_length to idx+self.pred_length
+
+        idx: the current timestep.
+        
+        """
+
         # Give label to traci so it can run multiple instances in case dataloader is multi-threaded
         thread_id = np.random.randint(low=0, high=self.max_length)
         while thread_id in self.sumo_running_labels:
