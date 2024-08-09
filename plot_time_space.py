@@ -11,7 +11,8 @@ experiment = 'ring_speed_acc'
 # experiment = 'ring_xy_out'
 # experiment = 'ring_xy_out__moveToXY'
 experiment = 'ring_speed_acc__setAcceleration'
-experiment = 'ring_speed_test'
+experiment = 'ring_xy_out2'
+experiment = 'ring_speed'
 
 path = f'./results/inference/behavior_net/{experiment}/df_traj_1000.csv'
 save_path = f'./results/inference/behavior_net/{experiment}'
@@ -28,7 +29,7 @@ for i in range(trajectory['Simulation No'].max()):
         trajectory.loc[trajectory['Simulation No'] == i+1,'Position'] -= np.abs(np.min(trajectory.loc[trajectory['Simulation No'] == i+1,'Position']))
 trajectory
 
-trajectory = trajectory[trajectory['Time'] < 100]
+trajectory = trajectory[trajectory['Time'] > 300]
 
 #####################
 
@@ -69,5 +70,6 @@ for sim_num in [0]:
 
     iplot += 1
 
-fig.savefig(os.path.join(save_path, 'time_space_diagram.png'))
-print('Saved to ', os.path.join(save_path, 'time_space_diagram.png'))
+save_pgn = os.path.join(save_path, 'time_space_diagram_gt_300.png')
+fig.savefig(save_pgn)
+print('Saved to ', save_pgn)

@@ -10,7 +10,7 @@ logging.basicConfig(level=logging.WARNING)
 import traci
 
 from torch.utils.data import Dataset, DataLoader
-# from trajectory_pool import TrajectoryPool
+from trajectory_pool import TrajectoryPool
 
 # import simulation_modeling.utils as utils
 from . import utils
@@ -23,16 +23,18 @@ class MTLTrajectoryPredictionDataset(Dataset):
     """
 
     def __init__(self, history_length, pred_length, max_num_vehicles, is_train, dataset='ring',
-                 sumo_cmd = ['sumo', '-c', 'data/sumo/ring/circles.sumocfg']):
+                 sumo_cmd = ['sumo', '-c', 'data/sumo/ring/circles.sumocfg'], model_output = 'position'):
         self.history_length = history_length
         self.pred_length = pred_length
         self.max_num_vehicles = max_num_vehicles
         self.is_train = is_train
         self.dataset = dataset
         self.max_length = 1000
-        self.TIME_BUFF = []
         self.sumo_cmd = sumo_cmd
-        
+        self.sumo_running_labels = []
+        assert model_output in ['position', 'speed']
+        self.model_output = model_output  # position or speed
+         
         print('sumo_cmd', sumo_cmd)
 
 
@@ -44,11 +46,11 @@ class MTLTrajectoryPredictionDataset(Dataset):
 
     def __len__(self):
         if self.dataset == 'rounD' or self.dataset == 'AA_rdbt' or self.dataset == 'ring':
-            return self.max_length - (self.history_length+self.pred_length)
+            return self.max_length - (self.pred_length)
         else:
             raise NotImplementedError( 'Wrong dataset name %s (choose one from [AA_rdbt, rounD,...])' % self.dataset)
 
-    def __getitem__(self, idx):
+    # def __getitem__(self, idx):
 
         # if self.dataset == 'rounD' or self.dataset == 'AA_rdbt' or self.dataset == 'ring':
         #     subfolder_id = random.choices(range(len(self.each_subfolder_size)), weights=self.subfolder_data_proportion)[0]
@@ -70,18 +72,32 @@ class MTLTrajectoryPredictionDataset(Dataset):
         # input_matrix = torch.tensor(input_matrix, dtype=torch.float32)
         # gt_matrix = torch.tensor(gt_matrix, dtype=torch.float32)
         # data = {'input': input_matrix, 'gt': gt_matrix}
-        
-        traci.start(self.sumo_cmd)
+
+        # return data
+    
+    def __getitem__(self, idx):
+        # Give label to traci so it can run multiple instances in case dataloader is multi-threaded
+        thread_id = np.random.randint(low=0, high=self.max_length)
+        while thread_id in self.sumo_running_labels:
+            thread_id = np.random.randint(0) 
+        self.sumo_running_labels += [thread_id]
+
+        sumo_label = f'sim_dataloader_{thread_id}'
+        # print('Starting sumo id', sumo_label)
+        traci.start(self.sumo_cmd, label=sumo_label)
 
         step = 0
-        while step < self.max_length:
-            # print(step)
-
+        while step < idx - self.history_length:
             traci.simulationStep()
-            
             step += 1
-            
-            if step < idx:
+        
+        start = 0
+        TIME_BUFF = []
+        while start < self.history_length + self.pred_length:
+            traci.simulationStep()
+            start += 1
+            step += 1
+            if step < idx - self.history_length:
                 continue
 
             car_list = traci.vehicle.getIDList()
@@ -105,40 +121,41 @@ class MTLTrajectoryPredictionDataset(Dataset):
                 vehicle_list.append(to_vehicle(x, y, angle_deg, car_id, speed, road_id, 
                                                lane_id, lane_index, acceleration))
                 
-            self.TIME_BUFF.append(vehicle_list)
-                
-            if len(self.TIME_BUFF) < self.history_length+self.pred_length:
-                continue
-            
-            assert len(self.TIME_BUFF) >= self.history_length + self.pred_length, len(self.TIME_BUFF)
-            traj_pool = time_buff_to_traj_pool(self.TIME_BUFF)
-            
-            buff_lat, buff_lon, buff_cos_heading, buff_sin_heading, \
-                buff_vid, buff_speed, buff_acc, buff_road_id, buff_lane_id, buff_lane_index = \
-                traj_pool.flatten_trajectory(
-                time_length=self.history_length+self.pred_length, max_num_vehicles=self.max_num_vehicles, output_vid=True)
-
-            input_matrix, gt_matrix = self.make_training_data_pair(buff_lat, buff_lon, buff_cos_heading, buff_sin_heading, buff_speed, buff_acc)
-
-            input_matrix = torch.tensor(input_matrix, dtype=torch.float32)
-            gt_matrix = torch.tensor(gt_matrix, dtype=torch.float32)
-            data = {'input': input_matrix, 'gt': gt_matrix}
-            
-            break
+            TIME_BUFF.append(vehicle_list)
             
         traci.close()
+        # print('self.sumo_running_labels', self.sumo_running_labels)
+        self.sumo_running_labels.remove(thread_id)
 
-        return data
+        # Make input output data
+        assert len(TIME_BUFF) == self.history_length + self.pred_length, len(self.TIME_BUFF)
+        traj_pool = time_buff_to_traj_pool(TIME_BUFF)
+        
+        buff_lat, buff_lon, buff_cos_heading, buff_sin_heading, \
+            buff_vid, buff_speed, buff_acc, buff_road_id, buff_lane_id, buff_lane_index = \
+            traj_pool.flatten_trajectory(
+            time_length=self.history_length+self.pred_length, max_num_vehicles=self.max_num_vehicles, output_vid=True)
 
-    # def fill_in_traj_pool(self, t0, datafolder_dirs):
-    #     # read frames within a time interval
-    #     traj_pool = TrajectoryPool()
-    #     for i in range(t0-self.history_length+1, t0+self.pred_length+1):
-    #         vehicle_list = pickle.load(open(datafolder_dirs[i], "rb"))
-    #         traj_pool.update(vehicle_list)
-    #     return traj_pool
+        if self.model_output == 'position':
+            input_matrix, gt_matrix = self.make_training_data_pair(buff_lat, buff_lon, buff_cos_heading, buff_sin_heading)
+        elif self.model_output == 'speed':
+            input_matrix, gt_matrix = self.make_training_data_pair(buff_speed, buff_acc, buff_cos_heading, buff_sin_heading)
 
-    def make_training_data_pair(self, buff_lat, buff_lon, buff_cos_heading, buff_sin_heading, buff_speed, buff_acc):
+        input_matrix = torch.tensor(input_matrix, dtype=torch.float32)
+        gt_matrix = torch.tensor(gt_matrix, dtype=torch.float32)
+        data = {'input': input_matrix, 'gt': gt_matrix}
+
+        return data, idx
+
+    def fill_in_traj_pool(self, t0, datafolder_dirs):
+        # read frames within a time interval
+        traj_pool = TrajectoryPool()
+        for i in range(t0-self.history_length+1, t0+self.pred_length+1):
+            vehicle_list = pickle.load(open(datafolder_dirs[i], "rb"))
+            traj_pool.update(vehicle_list)
+        return traj_pool
+
+    def make_training_data_pair(self, buff_lat, buff_lon, buff_cos_heading, buff_sin_heading, buff_speed=None, buff_acc=None):
 
         buff_lat_in = buff_lat[:, 0:self.history_length]
         buff_lat_out = buff_lat[:, self.history_length:]
@@ -148,8 +165,8 @@ class MTLTrajectoryPredictionDataset(Dataset):
         buff_cos_heading_out = buff_cos_heading[:, self.history_length:]
         buff_sin_heading_in = buff_sin_heading[:, 0:self.history_length]
         buff_sin_heading_out = buff_sin_heading[:, self.history_length:]
-        buff_speed_out = buff_speed[:, self.history_length:]
-        buff_acc_out = buff_acc[:, self.history_length:]
+        # buff_speed_out = buff_speed[:, self.history_length:]
+        # buff_acc_out = buff_acc[:, self.history_length:]
 
         buff_lat_in = utils.nan_intep_2d(buff_lat_in, axis=1)
         buff_lon_in = utils.nan_intep_2d(buff_lon_in, axis=1)
@@ -157,7 +174,8 @@ class MTLTrajectoryPredictionDataset(Dataset):
         buff_sin_heading_in = utils.nan_intep_2d(buff_sin_heading_in, axis=1)
 
         input_matrix = np.concatenate([buff_lat_in, buff_lon_in, buff_cos_heading_in, buff_sin_heading_in], axis=1)
-        gt_matrix = np.concatenate([buff_speed_out, buff_acc_out, buff_cos_heading_out, buff_sin_heading_out], axis=1)
+        gt_matrix = np.concatenate([buff_lat_out, buff_lon_out, buff_cos_heading_out, buff_sin_heading_out], axis=1)
+        # gt_matrix = np.concatenate([buff_speed_out, buff_acc_out, buff_cos_heading_out, buff_sin_heading_out], axis=1)
 
         # # mask-out those output traj whose input is nan
         gt_matrix[np.isnan(input_matrix).sum(1) > 0, :] = np.nan
@@ -199,9 +217,11 @@ def get_loaders(configs, sumo_cmd):
 
     if configs["dataset"] == 'AA_rdbt' or configs["dataset"] == 'rounD' or configs["dataset"] == 'ring':
         training_set = MTLTrajectoryPredictionDataset(history_length=configs["history_length"], pred_length=configs["pred_length"],
-                                                      max_num_vehicles=configs["max_num_vehicles"], is_train=True, dataset=configs["dataset"], sumo_cmd=sumo_cmd)
+                                                      max_num_vehicles=configs["max_num_vehicles"], is_train=True, dataset=configs["dataset"], 
+                                                      sumo_cmd=sumo_cmd, model_output=configs['model_output'])
         val_set = MTLTrajectoryPredictionDataset(history_length=configs["history_length"], pred_length=configs["pred_length"],
-                                                 max_num_vehicles=configs["max_num_vehicles"], is_train=False, dataset=configs["dataset"], sumo_cmd=sumo_cmd)
+                                                 max_num_vehicles=configs["max_num_vehicles"], is_train=False, dataset=configs["dataset"], 
+                                                 sumo_cmd=sumo_cmd, model_output=configs['model_output'])
     else:
         raise NotImplementedError(
             'Wrong dataset name %s (choose one from [AA_rdbt, rounD,...])'

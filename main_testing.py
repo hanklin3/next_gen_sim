@@ -82,14 +82,13 @@ def converter(x, y, angles_deg):
 
 ########################################
 # Initialize the predictor process
+# Predictor will load model
 model = Predictor(model=configs['model'], history_length=configs['history_length'], 
                   pred_length=configs['pred_length'], m_tokens=configs['m_tokens'], 
                   checkpoint_dir=configs['behavior_model_ckpt_dir'],
                   safety_mapper_ckpt_dir=configs['safety_mapper_ckpt_dir'])
-model.initialize_net_G()
-model.initialize_net_safety_mapper()
 
-traj_pool = TrajectoryPool()
+# traj_pool = TrajectoryPool()
 
 
 # veh_num = configs['m_tokens']
@@ -123,6 +122,7 @@ TIME_BUFF = []
 rolling_step = configs['rolling_step']
 history_length = configs['history_length']
 sim_resol = configs['sim_resol']
+output_type = configs['model_output_type']
 
 dataf = []
 df_predicted = []
@@ -187,6 +187,7 @@ while step < 1000:
     print('buff_road_id', buff_road_id.shape, buff_road_id, buff_road_id[0,0].decode('utf-8'))
     print('buff_lane_id', buff_lane_index.shape, buff_lane_index, buff_lane_index[0,0])
 
+    ## Record prediction to dataframe for metrics later
     rows, cols = buff_vid.shape
     assert pred_lat.shape == buff_vid.shape
     for irow in range(rows):
@@ -205,33 +206,40 @@ while step < 1000:
         vid = row[0]
         if np.isnan(vid):
             continue
-        dx = np.diff(pred_lat[row_idx,:])
-        dy = np.diff(pred_lon[row_idx,:])
-        speed = np.sqrt(dx**2 + dy**2) / configs['sim_resol']
-        # speed = np.max(dx / configs['sim_resol'], dy / configs['sim_resol'])
-        print('dx', dx.shape, dx)
-        # print('speed', speed)
+
+        # output_type = 'position'
+        # output_type = 'speed'
+        # output_type = 'no_set'
+        if output_type == 'position':
+            dx = np.diff(pred_lat[row_idx,:])
+            dy = np.diff(pred_lon[row_idx,:])
+            speed = np.sqrt(dx**2 + dy**2) / configs['sim_resol']
+            speed = np.max(dx / configs['sim_resol'], dy / configs['sim_resol'])
+            print('dx', dx.shape, dx)
+            # print('speed', speed)
+            
+            # assert speed[0] > 0, (speed, pred_speed[row_idx,:], pred_speed[row_idx,:])
+            traci.vehicle.setSpeed(str(int(vid)), speed[0])
         
-        
-        # assert speed[0] > 0, (speed, pred_speed[row_idx,:], pred_speed[row_idx,:])
-        # traci.vehicle.setSpeed(str(int(vid)), speed[0])
-        
-        ####################Speed
-        # print('pred_speed', pred_speed[row_idx,0])
-        traci.vehicle.setSpeed(str(int(vid)), pred_speed[row_idx,0])
-        
-        ####################Acce
-        # print('pred_acceleration', pred_acceleration[row_idx,0])
-        # traci.vehicle.setAcceleration(str(int(vid)), pred_acceleration[row_idx,0], 0.4)
-        # traci.vehicle.setAccel(str(int(vid)), pred_acceleration[row_idx,0])
-        #####################
-        # dx = np.diff(buff_lat[row_idx,:], n=2)
-        # dy = np.diff(buff_lon[row_idx,:], n=2)
-        # acceleration = np.sqrt(dx**2 + dy**2) / configs['sim_resol']
-        
-        # print('acceleration', acceleration)
-        
-        # traci.vehicle.setAcceleration(str(int(vid)), acceleration[0], 0.1)
+        elif output_type == 'speed':
+            ####################Speed
+            # print('pred_speed', pred_speed[row_idx,0])
+            traci.vehicle.setSpeed(str(int(vid)), pred_speed[row_idx,0])
+        elif output_type == 'no_set':
+            pass
+        elif output_type == 'acceleration':
+            ####################Acce
+            # print('pred_acceleration', pred_acceleration[row_idx,0])
+            # traci.vehicle.setAcceleration(str(int(vid)), pred_acceleration[row_idx,0], 0.4)
+            traci.vehicle.setAccel(str(int(vid)), pred_acceleration[row_idx,0])
+            #####################
+            # dx = np.diff(buff_lat[row_idx,:], n=2)
+            # dy = np.diff(buff_lon[row_idx,:], n=2)
+            # acceleration = np.sqrt(dx**2 + dy**2) / configs['sim_resol']
+            
+            # print('acceleration', acceleration)
+            
+            # traci.vehicle.setAcceleration(str(int(vid)), acceleration[0], 0.1)
 
         #####################
         # traci.vehicle.moveToXY(str(int(vid)), buff_road_id[row_idx, 0].decode('utf-8'), 
@@ -240,7 +248,8 @@ while step < 1000:
         # traci.vehicle.moveToXY(str(int(vid)), buff_road_id[row_idx, 0].decode('utf-8'), 
         #         0, 
         #         x=buff_lat[row_idx,1], y=buff_lon[row_idx,1])
-        
+        else:
+            assert False, "Unsupported model output type"
 
 traci.close()
 
@@ -318,22 +327,31 @@ df_traj
 df_traj[df_traj['Car']==21]['Position']
 # %%
 print(np.unique(df_traj['Car']))
+
 # %%
-save_file = os.path.join(save_path, f'df_traj_{1000}.csv')
+###########################
+# Save sumo simuilation dataframe
+if output_type == 'no_set':
+    save_file = os.path.join(save_path, f'df_traj_gt_{1000}.csv')
+else:
+    save_file = os.path.join(save_path, f'df_traj_{1000}.csv')
 df_traj.to_csv(save_file)
 print('saved to ', save_file)
 ########################################
-
-
+# Save model prediction dataframe
 arr_predicted = np.asarray(df_predicted)
 df_traj_predicted = pd.DataFrame(arr_predicted,
                        columns=['Simulation No', 'Time', 'Car', 'x', 'y'])
 df_traj_predicted['Simulation No'] = df_traj['Simulation No'].astype(int)
 df_traj_predicted['Car'] = df_traj['Car'].astype(int)
 
-save_file = os.path.join(save_path, f'df_traj_pred_{1000}.csv')
+if output_type == 'no_set':
+    save_file = os.path.join(save_path, f'df_traj_pred_open_loop_{1000}.csv')
+else:
+    save_file = os.path.join(save_path, f'df_traj_pred_{1000}.csv')
 df_traj_predicted.to_csv(save_file)
 print('saved to ', save_file)
+##########################
 # Initialize the training process
 
 # dataloaders = datasets.get_loaders(configs)

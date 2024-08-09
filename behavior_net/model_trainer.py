@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import os
 import json
 import random
+import traci
 
 import torch
 import torch.optim as optim
@@ -23,9 +24,11 @@ class Trainer(object):
     Model trainer. This class provides fundamental methods for model training and checkpoint management.
     """
 
-    def __init__(self, configs, dataloaders):
+    def __init__(self, configs, dataloaders,
+                 sumo_cmd = ['sumo', '-c', 'data/sumo/ring/circles.sumocfg']):
 
         self.dataloaders = dataloaders
+        self.sumo_cmd = sumo_cmd
 
         # input and output dimension
         self.input_dim = 4 * configs["history_length"]  # x, y, cos_heading, sin_heading
@@ -162,9 +165,9 @@ class Trainer(object):
         self.running_loss_G_adv.append(self.G_adv_loss.item())
 
         if self.is_training:
-            m_batches = len(self.dataloaders['train'])
+            m_batches, idx_data = len(self.dataloaders['train'])
         else:
-            m_batches = len(self.dataloaders['val'])
+            m_batches, idx_data = len(self.dataloaders['val'])
 
         if np.mod(self.batch_id, 100) == 1:
             print('Is_training: %s. epoch [%d,%d], batch [%d,%d], reg_loss_pos: %.5f, reg_loss_heading: %.5f, '
@@ -278,7 +281,7 @@ class Trainer(object):
         print('visualizing prediction...')
         print()
 
-        batch = next(iter(self.dataloaders['val']))
+        batch, idx_data = next(iter(self.dataloaders['val']))
         with torch.no_grad():
             self._forward_pass(batch)
 
@@ -419,7 +422,7 @@ class Trainer(object):
             self.is_training = True
             self.net_G.train()  # Set model to training mode
             # Iterate over data.
-            for self.batch_id, batch in enumerate(self.dataloaders['train'], 0):
+            for self.batch_id, (batch, idx_data) in enumerate(self.dataloaders['train'], 0):
                 self._forward_pass(batch, rollout=1)
                 # update D
                 set_requires_grad(self.net_D, True)
@@ -447,7 +450,7 @@ class Trainer(object):
             self.net_G.eval()  # Set model to eval mode
 
             # Iterate over data.
-            for self.batch_id, batch in enumerate(self.dataloaders['val'], 0):
+            for self.batch_id, (batch, idx_data) in enumerate(self.dataloaders['val'], 0):
                 with torch.no_grad():
                     self._forward_pass(batch, rollout=1)
                     self._compute_loss_G()
