@@ -113,7 +113,8 @@ class MTLTrajectoryPredictionDataset(Dataset):
             for car_id in car_list:
                 x,y = traci.vehicle.getPosition(car_id)
                 angle_deg = traci.vehicle.getAngle(car_id)
-                speed = traci.vehicle.getSpeed(car_id)
+                # speed = traci.vehicle.getSpeed(car_id)
+                speed = traci.vehicle.getLateralSpeed(car_id)
                 acceleration = traci.vehicle.getAcceleration(car_id)
                 road_id = traci.vehicle.getRoadID(car_id)
                 lane_id = traci.vehicle.getLaneID(car_id)

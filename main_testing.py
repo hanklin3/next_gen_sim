@@ -142,7 +142,8 @@ while step < 1000:
     for car_id in car_list:
         x,y = traci.vehicle.getPosition(car_id)
         angle_deg = traci.vehicle.getAngle(car_id)
-        speed = traci.vehicle.getSpeed(car_id)
+        # speed = traci.vehicle.getSpeed(car_id)
+        speed = traci.vehicle.getLateralSpeed(car_id)
         acceleration = traci.vehicle.getAcceleration(car_id)
         road_id = traci.vehicle.getRoadID(car_id)
         lane_id = traci.vehicle.getLaneID(car_id)
@@ -214,12 +215,13 @@ while step < 1000:
             dx = np.diff(pred_lat[row_idx,:])
             dy = np.diff(pred_lon[row_idx,:])
             speed = np.sqrt(dx**2 + dy**2) / configs['sim_resol']
-            speed = np.max(dx / configs['sim_resol'], dy / configs['sim_resol'])
+            # speed = max(dx / configs['sim_resol'], dy / configs['sim_resol'])
             print('dx', dx.shape, dx)
             # print('speed', speed)
             
             # assert speed[0] > 0, (speed, pred_speed[row_idx,:], pred_speed[row_idx,:])
             traci.vehicle.setSpeed(str(int(vid)), speed[0])
+            # traci.setPreviousSpeed(str(int(vid)), speed[0])
         
         elif output_type == 'speed':
             ####################Speed
