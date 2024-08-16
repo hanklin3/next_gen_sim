@@ -496,7 +496,7 @@ class Trainer(object):
                 time_length=self.history_length, max_num_vehicles=self.m_tokens, output_vid=True)
             
             # Check if vehicle id is the same order
-            buff_vid = torch.tensor(buff_vid, dtype=torch.float32)
+            buff_vid = torch.tensor(buff_vid, dtype=torch.float32).to(device)
             # print('veh_ids', veh_ids.shape, veh_ids) # [32, 10]
             # print('buff_vid', buff_vid.shape, buff_vid) # [32, 5]
             assert torch.allclose(veh_ids[:, :self.history_length], buff_vid, equal_nan=True), (veh_ids[:, :self.history_length],
@@ -510,10 +510,9 @@ class Trainer(object):
                 buff_lat, buff_lon = buff_speed, buff_acc
 
             input_matrix = np.concatenate([buff_lat, buff_lon, buff_cos_heading, buff_sin_heading], axis=-1)
-            input_matrix = torch.tensor(input_matrix, dtype=torch.float32)
+            input_matrix = torch.tensor(input_matrix, dtype=torch.float32).to(device)
 
             input_matrix = input_matrix.unsqueeze(dim=0) # make sure the input has a shape of N x D. HL: 1 x N x D?
-            input_matrix = input_matrix.to(device)
 
             input_matrix[torch.isnan(input_matrix)] = 0.0
 
