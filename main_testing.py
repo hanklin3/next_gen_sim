@@ -13,7 +13,7 @@ from utils import set_sumo
 from behavior_net.model_inference import Predictor
 from trajectory_pool import TrajectoryPool
 from vehicle import Vehicle
-from utils import time_buff_to_traj_pool, to_vehicle
+from vehicle.utils_vehicle import to_vehicle, time_buff_to_traj_pool
 
 if 'SUMO_HOME' in os.environ:
     sys.path.append(os.path.join(os.environ['SUMO_HOME'], 'tools'))
@@ -122,7 +122,7 @@ TIME_BUFF = []
 rolling_step = configs['rolling_step']
 history_length = configs['history_length']
 sim_resol = configs['sim_resol']
-output_type = configs['model_output_type']
+model_output = configs['model_model_output']
 
 dataf = []
 df_predicted = []
@@ -142,8 +142,8 @@ while step < 1000:
     for car_id in car_list:
         x,y = traci.vehicle.getPosition(car_id)
         angle_deg = traci.vehicle.getAngle(car_id)
-        # speed = traci.vehicle.getSpeed(car_id)
-        speed = traci.vehicle.getLateralSpeed(car_id)
+        speed = traci.vehicle.getSpeed(car_id)
+        # speed = traci.vehicle.getLateralSpeed(car_id)
         acceleration = traci.vehicle.getAcceleration(car_id)
         road_id = traci.vehicle.getRoadID(car_id)
         lane_id = traci.vehicle.getLaneID(car_id)
@@ -208,10 +208,10 @@ while step < 1000:
         if np.isnan(vid):
             continue
 
-        # output_type = 'position'
-        # output_type = 'speed'
-        # output_type = 'no_set'
-        if output_type == 'position':
+        # model_output = 'position'
+        # model_output = 'speed'
+        # model_output = 'no_set'
+        if model_output == 'position':
             dx = np.diff(pred_lat[row_idx,:])
             dy = np.diff(pred_lon[row_idx,:])
             speed = np.sqrt(dx**2 + dy**2) / configs['sim_resol']
@@ -223,13 +223,13 @@ while step < 1000:
             traci.vehicle.setSpeed(str(int(vid)), speed[0])
             # traci.setPreviousSpeed(str(int(vid)), speed[0])
         
-        elif output_type == 'speed':
+        elif model_output == 'speed':
             ####################Speed
             # print('pred_speed', pred_speed[row_idx,0])
             traci.vehicle.setSpeed(str(int(vid)), pred_speed[row_idx,0])
-        elif output_type == 'no_set':
+        elif model_output == 'no_set':
             pass
-        elif output_type == 'acceleration':
+        elif model_output == 'acceleration':
             ####################Acce
             # print('pred_acceleration', pred_acceleration[row_idx,0])
             # traci.vehicle.setAcceleration(str(int(vid)), pred_acceleration[row_idx,0], 0.4)
@@ -333,7 +333,7 @@ print(np.unique(df_traj['Car']))
 # %%
 ###########################
 # Save sumo simuilation dataframe
-if output_type == 'no_set':
+if model_output == 'no_set':
     save_file = os.path.join(save_path, f'df_traj_gt_{1000}.csv')
 else:
     save_file = os.path.join(save_path, f'df_traj_{1000}.csv')
@@ -347,7 +347,7 @@ df_traj_predicted = pd.DataFrame(arr_predicted,
 df_traj_predicted['Simulation No'] = df_traj['Simulation No'].astype(int)
 df_traj_predicted['Car'] = df_traj['Car'].astype(int)
 
-if output_type == 'no_set':
+if model_output == 'no_set':
     save_file = os.path.join(save_path, f'df_traj_pred_open_loop_{1000}.csv')
 else:
     save_file = os.path.join(save_path, f'df_traj_pred_{1000}.csv')

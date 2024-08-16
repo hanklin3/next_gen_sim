@@ -15,7 +15,7 @@ from utils import set_sumo
 from behavior_net.model_inference import Predictor
 from trajectory_pool import TrajectoryPool
 from vehicle import Vehicle
-from utils import time_buff_to_traj_pool, to_vehicle
+from vehicle.utils_vehicle import to_vehicle, time_buff_to_traj_pool
 from behavior_net import datasets
 from behavior_net import Trainer
 

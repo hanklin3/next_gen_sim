@@ -76,19 +76,25 @@ class Predictor(object):
         # buff_lat, buff_lon, buff_cos_heading, buff_sin_heading, buff_vid = traj_pool.flatten_trajectory(
         #     time_length=self.history_length, max_num_vehicles=self.m_tokens, output_vid=True)
 
-        buff_lat = utils.nan_intep_2d(buff_lat, axis=1)
-        buff_lon = utils.nan_intep_2d(buff_lon, axis=1)
-        buff_cos_heading = utils.nan_intep_2d(buff_cos_heading, axis=1)
-        buff_sin_heading = utils.nan_intep_2d(buff_sin_heading, axis=1)
+        # buff_lat = utils.nan_intep_2d(buff_lat, axis=1)
+        # buff_lon = utils.nan_intep_2d(buff_lon, axis=1)
+        # buff_cos_heading = utils.nan_intep_2d(buff_cos_heading, axis=1)
+        # buff_sin_heading = utils.nan_intep_2d(buff_sin_heading, axis=1)
 
         input_matrix = np.concatenate([buff_lat, buff_lon, buff_cos_heading, buff_sin_heading], axis=1)
         input_matrix = torch.tensor(input_matrix, dtype=torch.float32)
 
+        print('input_matrix', input_matrix.shape)
+        
+
         # # sample an input state from testing data (e.g. 0th state)
-        input_matrix = input_matrix.unsqueeze(dim=0) # make sure the input has a shape of N x D
+        input_matrix = input_matrix.unsqueeze(dim=0) # make sure the input has a shape of N x D. HL: 1 x N x D?
         input_matrix = input_matrix.to(self.device)
 
         input_matrix[torch.isnan(input_matrix)] = 0.0
+
+        print('after unsqueeze', input_matrix.shape)
+
 
         # run prediction
         mean_pos, std_pos, cos_sin_heading = self.net_G(input_matrix)
@@ -104,10 +110,11 @@ class Predictor(object):
         pred_cos_heading = pred_cos_sin_heading[:, 0:self.pred_length].astype(np.float64)
         pred_sin_heading = pred_cos_sin_heading[:, self.pred_length:].astype(np.float64)
 
-        pred_lat, pred_lon = self.sampling(pred_lat_mean, pred_lon_mean, pred_lat_std, pred_lon_std)
-        # pred_lat = pred_lat_mean
-        # pred_lon = pred_lon_mean
-        
+        # HL: why do we need sampling?
+        pred_lat = pred_lat_mean
+        pred_lon = pred_lon_mean
+        # pred_lat, pred_lon = self.sampling(pred_lat_mean, pred_lon_mean, pred_lat_std, pred_lon_std)
+
         # print('mean_pos', mean_pos.shape, mean_pos)
         # print('pred_lat_mean', pred_lat_mean.shape, pred_lat_mean)
         # print('pred_lat', pred_lat.shape, pred_lat)

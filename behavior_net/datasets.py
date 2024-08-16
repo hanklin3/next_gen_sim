@@ -14,7 +14,7 @@ from trajectory_pool import TrajectoryPool
 
 # import simulation_modeling.utils as utils
 from . import utils
-from utils import time_buff_to_traj_pool, to_vehicle
+from vehicle.utils_vehicle import to_vehicle, time_buff_to_traj_pool
 
 
 class MTLTrajectoryPredictionDataset(Dataset):
@@ -92,6 +92,7 @@ class MTLTrajectoryPredictionDataset(Dataset):
         sumo_label = f'sim_dataloader_{thread_id}'
         # print('Starting sumo id', sumo_label)
         traci.start(self.sumo_cmd, label=sumo_label)
+        #######
 
         step = 0
         while step < idx - self.history_length:
@@ -102,10 +103,8 @@ class MTLTrajectoryPredictionDataset(Dataset):
         TIME_BUFF = []
         while start < self.history_length + self.pred_length:
             traci.simulationStep()
-            start += 1
-            step += 1
-            if step < idx - self.history_length:
-                continue
+            
+            assert step >= idx - self.history_length
 
             car_list = traci.vehicle.getIDList()
             vehicle_list = []
@@ -113,8 +112,8 @@ class MTLTrajectoryPredictionDataset(Dataset):
             for car_id in car_list:
                 x,y = traci.vehicle.getPosition(car_id)
                 angle_deg = traci.vehicle.getAngle(car_id)
-                # speed = traci.vehicle.getSpeed(car_id)
-                speed = traci.vehicle.getLateralSpeed(car_id)
+                speed = traci.vehicle.getSpeed(car_id)
+                # speed = traci.vehicle.getLateralSpeed(car_id)
                 acceleration = traci.vehicle.getAcceleration(car_id)
                 road_id = traci.vehicle.getRoadID(car_id)
                 lane_id = traci.vehicle.getLaneID(car_id)
@@ -130,10 +129,15 @@ class MTLTrajectoryPredictionDataset(Dataset):
                                                lane_id, lane_index, acceleration))
                 
             TIME_BUFF.append(vehicle_list)
+
+            start += 1
+            step += 1
             
         traci.close()
         # print('self.sumo_running_labels', self.sumo_running_labels)
+        # 'mux' switch to remove tracking thread label
         self.sumo_running_labels.remove(thread_id)
+        #######
 
         # Make input output data
         assert len(TIME_BUFF) == self.history_length + self.pred_length, len(self.TIME_BUFF)
@@ -151,9 +155,11 @@ class MTLTrajectoryPredictionDataset(Dataset):
 
         input_matrix = torch.tensor(input_matrix, dtype=torch.float32)
         gt_matrix = torch.tensor(gt_matrix, dtype=torch.float32)
-        data = {'input': input_matrix, 'gt': gt_matrix}
+        idx = torch.tensor(idx, dtype=torch.float32)
+        buff_vid = torch.tensor(buff_vid, dtype=torch.float32)
+        data = {'input': input_matrix, 'gt': gt_matrix, 'idx': idx, 'vehicle_ids': buff_vid}
 
-        return data, idx
+        return data
 
     def fill_in_traj_pool(self, t0, datafolder_dirs):
         # read frames within a time interval
@@ -176,10 +182,10 @@ class MTLTrajectoryPredictionDataset(Dataset):
         # buff_speed_out = buff_speed[:, self.history_length:]
         # buff_acc_out = buff_acc[:, self.history_length:]
 
-        buff_lat_in = utils.nan_intep_2d(buff_lat_in, axis=1)
-        buff_lon_in = utils.nan_intep_2d(buff_lon_in, axis=1)
-        buff_cos_heading_in = utils.nan_intep_2d(buff_cos_heading_in, axis=1)
-        buff_sin_heading_in = utils.nan_intep_2d(buff_sin_heading_in, axis=1)
+        # buff_lat_in = utils.nan_intep_2d(buff_lat_in, axis=1)
+        # buff_lon_in = utils.nan_intep_2d(buff_lon_in, axis=1)
+        # buff_cos_heading_in = utils.nan_intep_2d(buff_cos_heading_in, axis=1)
+        # buff_sin_heading_in = utils.nan_intep_2d(buff_sin_heading_in, axis=1)
 
         input_matrix = np.concatenate([buff_lat_in, buff_lon_in, buff_cos_heading_in, buff_sin_heading_in], axis=1)
         gt_matrix = np.concatenate([buff_lat_out, buff_lon_out, buff_cos_heading_out, buff_sin_heading_out], axis=1)
@@ -189,10 +195,10 @@ class MTLTrajectoryPredictionDataset(Dataset):
         gt_matrix[np.isnan(input_matrix).sum(1) > 0, :] = np.nan
 
         # shuffle the order of input tokens
-        input_matrix, gt_matrix = self._shuffle_tokens(input_matrix, gt_matrix)
+        # input_matrix, gt_matrix = self._shuffle_tokens(input_matrix, gt_matrix)
 
         # data augmentation
-        input_matrix = self._data_augmentation(input_matrix, pos_scale=0.05, heading_scale=0.001)
+        # input_matrix = self._data_augmentation(input_matrix, pos_scale=0.05, heading_scale=0.001)
 
         return input_matrix, gt_matrix
 

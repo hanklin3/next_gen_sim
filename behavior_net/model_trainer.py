@@ -14,6 +14,7 @@ from .networks import define_G, define_D, set_requires_grad, define_safety_mappe
 from .loss import UncertaintyRegressionLoss, GANLoss
 from .metric import RegressionAccuracy
 from . import utils
+from vehicle.utils_vehicle import to_vehicle, time_buff_to_traj_pool, traci_get_vehicle_data
 
 # Decide which device we want to run on
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -25,16 +26,24 @@ class Trainer(object):
     """
 
     def __init__(self, configs, dataloaders,
-                 sumo_cmd = ['sumo', '-c', 'data/sumo/ring/circles.sumocfg']):
+                 sumo_cmd = ['sumo', '-c', 'data/sumo/ring/circles.sumocfg'],
+                 model_output='position'):
 
         self.dataloaders = dataloaders
         self.sumo_cmd = sumo_cmd
+        self.traci_label = "sumo_training"
 
         # input and output dimension
         self.input_dim = 4 * configs["history_length"]  # x, y, cos_heading, sin_heading
         self.output_dim = 4 * configs["pred_length"]  # x, y, cos_heading, sin_heading
+        self.history_length = configs["history_length"]
         self.pred_length = configs["pred_length"]
         self.m_tokens = configs["max_num_vehicles"]
+        self.rolling_step = 1
+        self.sim_resol = configs['sim_resol']
+
+        assert model_output in ['position', 'speed']
+        self.model_output = model_output  # position or speed
 
         # initialize networks
         self.net_G = define_G(
@@ -314,7 +323,6 @@ class Trainer(object):
         return torch.cat([lat, lon, heading_mu], dim=-1)
 
     def _forward_pass(self, batch, rollout=5):
-
         self.batch = batch
         self.x = batch['input'].to(device)
         self.gt = self.batch['gt'].to(device)
@@ -333,12 +341,20 @@ class Trainer(object):
         self.rollout_pos = []
         for _ in range(rollout):
             mu, std, cos_sin_heading = self.net_G(x_input)
-            x_input = self._sampling_from_mu_and_std(mu, std, cos_sin_heading)
+            # HL: why do we need sampling?
+            # x_input = self._sampling_from_mu_and_std(mu, std, cos_sin_heading)
             x_input = x_input * self.rollout_mask  # For future rollouts
-            x_input = self.net_safety_mapper.safety_mapper_in_the_training_loop_forward(x_input)
+            # x_input = self.net_safety_mapper.safety_mapper_in_the_training_loop_forward(x_input)
             self.rollout_pos.append(x_input)
             self.G_pred_mean.append(torch.cat([mu, cos_sin_heading], dim=-1))
             self.G_pred_std.append(std)
+
+        print('x_input', x_input.shape) # [32, 32, 20]
+        print('self.G_pred_mean', len(self.G_pred_mean), self.G_pred_mean[0].shape) #  1 torch.Size([32, 32, 20])
+        print('self.G_pred_std', len(self.G_pred_std), self.G_pred_std[0].shape) # 1 torch.Size([32, 32, 10])
+        print('self.rollout_mask', self.rollout_mask.shape) # torch.Size([32, 32, 20])
+        assert False
+
 
     def _compute_acc(self):
         G_pred_mean_at_step0 = self.G_pred_mean[0]
@@ -406,6 +422,169 @@ class Trainer(object):
         self.running_loss_G, self.running_loss_D = [], []
         self.running_loss_G_reg_pos, self.running_loss_G_reg_heading, self.running_loss_G_adv = [], [], []
 
+    def _forward_pass_sim(self, batch, rollout=1):
+        self.batch = batch
+        self.x = batch['input'].to(device)   #[32,32,20] history_length*(lat, lon, cos, sin),5*4
+        self.gt = self.batch['gt'].to(device) #[32,32,20]
+
+        self.mask = torch.ones_like(self.gt)
+        self.mask[torch.isnan(self.gt)] = 0.0
+
+        self.x[torch.isnan(self.x)] = 0.0
+        self.gt[torch.isnan(self.gt)] = 0.0
+
+        idx_current = self.batch['idx'] #[32]
+        veh_ids = self.batch['vehicle_ids']
+
+        batch_size = len(self.x)
+
+        self.G_pred_mean, self.G_pred_std = [], []
+        mean_pos_cos_sin_heading = torch.zeros((batch_size, self.m_tokens, self.output_dim))
+        std_pos = torch.zeros((batch_size, self.m_tokens, 2 * self.pred_length))
+
+        for i_batch in range(batch_size):
+            outputs = self._forward_pass_sim_one_batch(self.x[i_batch], idx_current[i_batch], veh_ids[i_batch])
+            mean_pos_cos_sin_heading[i_batch,:,:] = outputs['mean_pos_cos_sin_heading']
+            std_pos[i_batch,:,:] = outputs['std_pos']
+
+        self.G_pred_mean.append(mean_pos_cos_sin_heading)
+        self.G_pred_std.append(std_pos)
+
+    def _forward_pass_sim_one_batch(self, one_input, idx_current, veh_ids):
+    
+        outputs = {}
+        outputs['mean_pos_cos_sin_heading'] = torch.zeros((self.m_tokens, self.output_dim))
+        outputs['std_pos'] = torch.zeros((self.m_tokens, 2 * self.pred_length))
+
+        pred_lat_mean_loop = torch.zeros((self.m_tokens, self.pred_length))
+        pred_lon_mean_loop = torch.zeros((self.m_tokens, self.pred_length))
+        pred_lat_std_loop = torch.zeros((self.m_tokens, self.pred_length))
+        pred_lon_std_loop = torch.zeros((self.m_tokens, self.pred_length))
+        pred_cos_heading_loop = torch.zeros((self.m_tokens, self.pred_length))
+        pred_sin_heading_loop = torch.zeros((self.m_tokens, self.pred_length))
+
+        traci.start(self.sumo_cmd, label=self.traci_label)
+        step = 0
+        while step < idx_current - self.history_length:
+            traci.simulationStep()
+            step += 1
+
+        idx_output = 0
+        TIME_BUFF = []
+        start = 0
+        while start < self.history_length + self.pred_length:
+            traci.simulationStep()
+
+
+            if step >= idx_current - self.history_length:
+                vehicle_list = traci_get_vehicle_data()
+                TIME_BUFF.append(vehicle_list)
+
+                print('step added', step)
+
+            if step < idx_current:
+                continue
+
+            assert len(TIME_BUFF) == self.history_length, len(TIME_BUFF)
+            traj_pool = time_buff_to_traj_pool(TIME_BUFF)
+
+            buff_lat, buff_lon, buff_cos_heading, buff_sin_heading, \
+            buff_vid, buff_speed, buff_acc, buff_road_id, buff_lane_id, buff_lane_index = \
+            traj_pool.flatten_trajectory(
+                time_length=self.history_length, max_num_vehicles=self.m_tokens, output_vid=True)
+            
+            # Check if vehicle id is the same order
+            buff_vid = torch.tensor(buff_vid, dtype=torch.float32)
+            # print('veh_ids', veh_ids.shape, veh_ids) # [32, 10]
+            # print('buff_vid', buff_vid.shape, buff_vid) # [32, 5]
+            assert torch.allclose(veh_ids[:, :self.history_length], buff_vid, equal_nan=True), (veh_ids[:, :self.history_length],
+                                                                                 buff_vid)
+            
+            TIME_BUFF = TIME_BUFF[self.rolling_step:]
+
+            if self.model_output == 'position':
+                buff_lat, buff_lon = buff_lat, buff_lon
+            elif self.model_output == 'speed':
+                buff_lat, buff_lon = buff_speed, buff_acc
+
+            input_matrix = np.concatenate([buff_lat, buff_lon, buff_cos_heading, buff_sin_heading], axis=-1)
+            input_matrix = torch.tensor(input_matrix, dtype=torch.float32)
+
+            input_matrix = input_matrix.unsqueeze(dim=0) # make sure the input has a shape of N x D. HL: 1 x N x D?
+            input_matrix = input_matrix.to(device)
+
+            input_matrix[torch.isnan(input_matrix)] = 0.0
+
+            # run prediction
+            mean_pos, std_pos, cos_sin_heading = self.net_G(input_matrix)
+
+            if step - 1 == idx_current:
+                print('step -1',  torch.allclose(one_input, input_matrix))
+            if step == idx_current:
+                print('step ==0',  torch.allclose(one_input, input_matrix))
+            if step + 1 == idx_current:
+                print('step +1',  torch.allclose(one_input, input_matrix))
+            # if step == idx_current:
+            #     assert torch.allclose(one_input, input_matrix), (one_input, input_matrix)
+
+            # assert False, "Passed!"
+
+            #####
+            # remove batch
+            print('mean_pos', mean_pos.shape) # [1, 32, 10]
+            
+            pred_lat_mean = mean_pos[:, :, 0:self.pred_length]
+            pred_lon_mean = mean_pos[:, :, self.pred_length:]
+            pred_lat_std = std_pos[:, :, 0:self.pred_length]
+            pred_lon_std = std_pos[:, :, self.pred_length:]
+            pred_cos_heading = cos_sin_heading[:, :, 0:self.pred_length]
+            pred_sin_heading = cos_sin_heading[:, :, self.pred_length:]
+
+            print('pred_lat_mean_loop', pred_lat_mean_loop.shape)
+            print('pred_lat_mean', pred_lat_mean.shape)
+            assert pred_lat_mean.shape[0] == 1
+            pred_lat_mean_loop[:, idx_output] = pred_lat_mean[0, :, 0]
+            pred_lon_mean_loop[:, idx_output] = pred_lon_mean[0, :, 0]
+            pred_lat_std_loop[:, idx_output] = pred_lat_std[0, :, 0]
+            pred_lon_std_loop[:, idx_output] = pred_lon_std[0, :, 0]
+            pred_cos_heading_loop[:, idx_output] = pred_cos_heading[0, :, 0]
+            pred_sin_heading_loop[:, idx_output] = pred_sin_heading[0, :, 0]
+
+            #### Feedback to next iteration ####
+            pred_lat = pred_lat_mean[0, :, :]
+            pred_lon = pred_lon_mean[0, :, :]
+
+            for row_idx, row in enumerate(buff_vid):
+                print('row_idx, row', row_idx, row)
+                vid = row[0]
+                if torch.isnan(vid):
+                    continue
+
+                if self.model_output == 'position':
+                    dx = torch.diff(pred_lat[row_idx,:])
+                    dy = torch.diff(pred_lon[row_idx,:])
+                    speed = torch.sqrt(dx**2 + dy**2) / self.sim_resol
+                    traci.vehicle.setSpeed(str(int(vid)), speed[0])
+                elif self.model_output == 'speed':
+                    pred_speed = pred_lat
+                    traci.vehicle.setSpeed(str(int(vid)), pred_speed[row_idx,0])
+
+            idx_output += 1
+            start += 1
+            step += 1
+
+        traci.close()
+
+        assert idx_output == 4
+
+        outputs['mean_pos_cos_sin_heading'][:, :] = torch.cat(
+            [pred_lat_mean_loop, pred_lon_mean_loop, pred_cos_heading_loop, pred_cos_heading_loop], axis=-1)
+        outputs['std_pos'][:, :] = torch.cat(
+            [pred_lat_std_loop, pred_lon_std_loop], axis=-1)
+
+        return outputs
+
+        
     def train_models(self):
         """
         Main training loop. We loop over the dataset multiple times.
@@ -422,8 +601,15 @@ class Trainer(object):
             self.is_training = True
             self.net_G.train()  # Set model to training mode
             # Iterate over data.
-            for self.batch_id, (batch, idx_data) in enumerate(self.dataloaders['train'], 0):
-                self._forward_pass(batch, rollout=1)
+            for self.batch_id, batch in enumerate(self.dataloaders['train'], 0):
+                # self._forward_pass_sim(self, batch, idx_current, rollout=1)
+                # self._forward_pass(batch, rollout=1)
+                self._forward_pass_sim(batch, rollout=1)
+                print("batch['input']", batch['input'].shape)
+                print("batch['gt']", batch['gt'].shape)
+                print("self.batch['idx']", batch['idx'].shape, batch['idx'])
+                assert False
+
                 # update D
                 set_requires_grad(self.net_D, True)
                 self.optimizer_D.zero_grad()
@@ -450,9 +636,10 @@ class Trainer(object):
             self.net_G.eval()  # Set model to eval mode
 
             # Iterate over data.
-            for self.batch_id, (batch, idx_data) in enumerate(self.dataloaders['val'], 0):
+            for self.batch_id, batch in enumerate(self.dataloaders['val'], 0):
                 with torch.no_grad():
-                    self._forward_pass(batch, rollout=1)
+                    self._forward_pass_sim(batch, rollout=1)
+                    # self._forward_pass(batch, rollout=1)
                     self._compute_loss_G()
                     self._compute_loss_D()
                     self._compute_acc()

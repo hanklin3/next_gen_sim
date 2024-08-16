@@ -1,7 +1,6 @@
 import numpy as np
 from shapely.geometry import Polygon
 
-
 def get_box_pts_from_center_heading(length, width, xc, yc, heading):
 
     l, w = length / 2.0 , width / 2.0
