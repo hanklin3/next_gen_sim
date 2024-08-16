@@ -433,19 +433,21 @@ class Trainer(object):
         self.x[torch.isnan(self.x)] = 0.0
         self.gt[torch.isnan(self.gt)] = 0.0
 
-        idx_current = self.batch['idx'] #[32]
-        veh_ids = self.batch['vehicle_ids']
+        idx = self.batch['idx'].to(device) #[32]
+        veh_ids = self.batch['vehicle_ids'].to(device)
 
         batch_size = len(self.x)
 
         self.G_pred_mean, self.G_pred_std = [], []
-        mean_pos_cos_sin_heading = torch.zeros((batch_size, self.m_tokens, self.output_dim))
-        std_pos = torch.zeros((batch_size, self.m_tokens, 2 * self.pred_length))
+        mean_pos_cos_sin_heading = torch.zeros((batch_size, self.m_tokens, self.output_dim)).to(device)
+        std_pos = torch.zeros((batch_size, self.m_tokens, 2 * self.pred_length)).to(device)
 
         for i_batch in range(batch_size):
-            outputs = self._forward_pass_sim_one_batch(self.x[i_batch], idx_current[i_batch], veh_ids[i_batch])
-            mean_pos_cos_sin_heading[i_batch,:,:] = outputs['mean_pos_cos_sin_heading']
-            std_pos[i_batch,:,:] = outputs['std_pos']
+            outputs = self._forward_pass_sim_one_batch(self.x[i_batch], idx[i_batch], veh_ids[i_batch])
+            mean_pos_cos_sin_heading[i_batch,:,:] = outputs['mean_pos_cos_sin_heading'].to(device)
+            std_pos[i_batch,:,:] = outputs['std_pos'].to(device)
+            # self.x[i_batch,:,:] = outputs['x_history'].to(device)
+
 
         self.G_pred_mean.append(mean_pos_cos_sin_heading)
         self.G_pred_std.append(std_pos)
@@ -453,15 +455,15 @@ class Trainer(object):
     def _forward_pass_sim_one_batch(self, one_input, idx_history, veh_ids):
     
         outputs = {}
-        outputs['mean_pos_cos_sin_heading'] = torch.zeros((self.m_tokens, self.output_dim))
-        outputs['std_pos'] = torch.zeros((self.m_tokens, 2 * self.pred_length))
+        outputs['mean_pos_cos_sin_heading'] = torch.zeros((self.m_tokens, self.output_dim)).to(device)
+        outputs['std_pos'] = torch.zeros((self.m_tokens, 2 * self.pred_length)).to(device)
 
-        pred_lat_mean_loop = torch.zeros((self.m_tokens, self.pred_length))
-        pred_lon_mean_loop = torch.zeros((self.m_tokens, self.pred_length))
-        pred_lat_std_loop = torch.zeros((self.m_tokens, self.pred_length))
-        pred_lon_std_loop = torch.zeros((self.m_tokens, self.pred_length))
-        pred_cos_heading_loop = torch.zeros((self.m_tokens, self.pred_length))
-        pred_sin_heading_loop = torch.zeros((self.m_tokens, self.pred_length))
+        pred_lat_mean_loop = torch.zeros((self.m_tokens, self.pred_length)).to(device)
+        pred_lon_mean_loop = torch.zeros((self.m_tokens, self.pred_length)).to(device)
+        pred_lat_std_loop = torch.zeros((self.m_tokens, self.pred_length)).to(device)
+        pred_lon_std_loop = torch.zeros((self.m_tokens, self.pred_length)).to(device)
+        pred_cos_heading_loop = torch.zeros((self.m_tokens, self.pred_length)).to(device)
+        pred_sin_heading_loop = torch.zeros((self.m_tokens, self.pred_length)).to(device)
 
         traci.start(self.sumo_cmd, label=self.traci_label)
         step = 0
@@ -527,10 +529,11 @@ class Trainer(object):
             # if step == idx_history:
 
             # if step == idx_history + self.history_length - 1:
-            # if is_first:
+            if is_first:
             #     assert torch.allclose(one_input, input_matrix), (one_input, input_matrix)
             #     assert False,  f'Passed! \n{(one_input, input_matrix)}'
             #     is_first = False
+                outputs['x_history'] = input_matrix
 
             #####
             # remove batch
@@ -580,9 +583,9 @@ class Trainer(object):
         assert idx_output == 5, idx_output
 
         outputs['mean_pos_cos_sin_heading'][:, :] = torch.cat(
-            [pred_lat_mean_loop, pred_lon_mean_loop, pred_cos_heading_loop, pred_cos_heading_loop], axis=-1)
-        outputs['std_pos'][:, :] = torch.cat(
-            [pred_lat_std_loop, pred_lon_std_loop], axis=-1)
+            [pred_lat_mean_loop, pred_lon_mean_loop, pred_cos_heading_loop, 
+             pred_cos_heading_loop], axis=-1).to(device)
+        outputs['std_pos'][:, :] = torch.cat([pred_lat_std_loop, pred_lon_std_loop], axis=-1).to(device)
 
         return outputs
 
