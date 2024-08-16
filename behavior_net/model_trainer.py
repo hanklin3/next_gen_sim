@@ -476,13 +476,14 @@ class Trainer(object):
             traci.simulationStep()
 
 
-            if step >= idx_current - self.history_length:
-                vehicle_list = traci_get_vehicle_data()
-                TIME_BUFF.append(vehicle_list)
+            assert step >= idx_current - self.history_length
+            vehicle_list = traci_get_vehicle_data()
+            TIME_BUFF.append(vehicle_list)
 
-                print('step added', step)
+            print('step added', step)
 
-            if step < idx_current:
+            if step < idx_current - 1:
+                step += 1
                 continue
 
             assert len(TIME_BUFF) == self.history_length, len(TIME_BUFF)
@@ -527,7 +528,7 @@ class Trainer(object):
             # if step == idx_current:
             #     assert torch.allclose(one_input, input_matrix), (one_input, input_matrix)
 
-            # assert False, "Passed!"
+            # # assert False, "Passed!"
 
             #####
             # remove batch
