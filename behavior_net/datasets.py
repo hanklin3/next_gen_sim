@@ -46,7 +46,7 @@ class MTLTrajectoryPredictionDataset(Dataset):
 
     def __len__(self):
         if self.dataset == 'rounD' or self.dataset == 'AA_rdbt' or self.dataset == 'ring':
-            return self.max_length - (self.pred_length)
+            return self.max_length - (self.history_length + self.pred_length)
         else:
             raise NotImplementedError( 'Wrong dataset name %s (choose one from [AA_rdbt, rounD,...])' % self.dataset)
 
@@ -77,9 +77,13 @@ class MTLTrajectoryPredictionDataset(Dataset):
     
     def __getitem__(self, idx):
         """
-        Extract timesteps id-self.history_length to idx+self.pred_length
+        # Extract timesteps id-self.history_length to idx+self.pred_length
 
-        idx: the current timestep.
+        # idx: the current timestep.
+
+        idx: start index of beginning of history.
+        history =5, and pred=3
+        idx = 0,  then current at 4, ends at 7
         
         """
 
@@ -95,16 +99,15 @@ class MTLTrajectoryPredictionDataset(Dataset):
         #######
 
         step = 0
-        while step < idx - self.history_length:
+        while step < idx:
             traci.simulationStep()
             step += 1
         
-        start = 0
         TIME_BUFF = []
-        while start < self.history_length + self.pred_length:
+        while step < idx + self.history_length + self.pred_length:
             traci.simulationStep()
             
-            assert step >= idx - self.history_length
+            assert step >= idx
 
             car_list = traci.vehicle.getIDList()
             vehicle_list = []
@@ -129,8 +132,6 @@ class MTLTrajectoryPredictionDataset(Dataset):
                                                lane_id, lane_index, acceleration))
                 
             TIME_BUFF.append(vehicle_list)
-
-            start += 1
             step += 1
             
         traci.close()

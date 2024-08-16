@@ -164,7 +164,7 @@ while step < 1000:
                 
     TIME_BUFF.append(vehicle_list)
         
-    if step < history_length:
+    if step < history_length - 1:
         continue
     
     assert len(TIME_BUFF) == history_length

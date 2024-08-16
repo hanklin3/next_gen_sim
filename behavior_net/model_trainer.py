@@ -353,7 +353,7 @@ class Trainer(object):
         print('self.G_pred_mean', len(self.G_pred_mean), self.G_pred_mean[0].shape) #  1 torch.Size([32, 32, 20])
         print('self.G_pred_std', len(self.G_pred_std), self.G_pred_std[0].shape) # 1 torch.Size([32, 32, 10])
         print('self.rollout_mask', self.rollout_mask.shape) # torch.Size([32, 32, 20])
-        assert False
+        # assert False
 
 
     def _compute_acc(self):
@@ -450,7 +450,7 @@ class Trainer(object):
         self.G_pred_mean.append(mean_pos_cos_sin_heading)
         self.G_pred_std.append(std_pos)
 
-    def _forward_pass_sim_one_batch(self, one_input, idx_current, veh_ids):
+    def _forward_pass_sim_one_batch(self, one_input, idx_history, veh_ids):
     
         outputs = {}
         outputs['mean_pos_cos_sin_heading'] = torch.zeros((self.m_tokens, self.output_dim))
@@ -465,24 +465,23 @@ class Trainer(object):
 
         traci.start(self.sumo_cmd, label=self.traci_label)
         step = 0
-        while step < idx_current - self.history_length:
+        while step < idx_history:
             traci.simulationStep()
             step += 1
 
         idx_output = 0
         TIME_BUFF = []
-        start = 0
-        while start < self.history_length + self.pred_length:
+        is_first = True
+        while step < idx_history + self.history_length + self.pred_length - 1:
             traci.simulationStep()
 
-
-            assert step >= idx_current - self.history_length
+            assert step >= idx_history
             vehicle_list = traci_get_vehicle_data()
             TIME_BUFF.append(vehicle_list)
 
             print('step added', step)
 
-            if step < idx_current - 1:
+            if step < idx_history + self.history_length - 1:
                 step += 1
                 continue
 
@@ -519,16 +518,19 @@ class Trainer(object):
             # run prediction
             mean_pos, std_pos, cos_sin_heading = self.net_G(input_matrix)
 
-            if step - 1 == idx_current:
-                print('step -1',  torch.allclose(one_input, input_matrix))
-            if step == idx_current:
+            if step == idx_history - 1:
+                print('idx_history -1',  torch.allclose(one_input, input_matrix))
+            if step == idx_history:
                 print('step ==0',  torch.allclose(one_input, input_matrix))
-            if step + 1 == idx_current:
-                print('step +1',  torch.allclose(one_input, input_matrix))
-            # if step == idx_current:
-            #     assert torch.allclose(one_input, input_matrix), (one_input, input_matrix)
+            if step == idx_history + 1:
+                print('idx_history +1',  torch.allclose(one_input, input_matrix))
+            # if step == idx_history:
 
-            # # assert False, "Passed!"
+            # if step == idx_history + self.history_length - 1:
+            # if is_first:
+            #     assert torch.allclose(one_input, input_matrix), (one_input, input_matrix)
+            #     assert False,  f'Passed! \n{(one_input, input_matrix)}'
+            #     is_first = False
 
             #####
             # remove batch
@@ -556,7 +558,7 @@ class Trainer(object):
             pred_lon = pred_lon_mean[0, :, :]
 
             for row_idx, row in enumerate(buff_vid):
-                print('row_idx, row', row_idx, row)
+                # print('row_idx, row', row_idx, row)
                 vid = row[0]
                 if torch.isnan(vid):
                     continue
@@ -571,12 +573,11 @@ class Trainer(object):
                     traci.vehicle.setSpeed(str(int(vid)), pred_speed[row_idx,0])
 
             idx_output += 1
-            start += 1
             step += 1
 
         traci.close()
 
-        assert idx_output == 4
+        assert idx_output == 5, idx_output
 
         outputs['mean_pos_cos_sin_heading'][:, :] = torch.cat(
             [pred_lat_mean_loop, pred_lon_mean_loop, pred_cos_heading_loop, pred_cos_heading_loop], axis=-1)
@@ -609,7 +610,7 @@ class Trainer(object):
                 print("batch['input']", batch['input'].shape)
                 print("batch['gt']", batch['gt'].shape)
                 print("self.batch['idx']", batch['idx'].shape, batch['idx'])
-                assert False
+                # assert False
 
                 # update D
                 set_requires_grad(self.net_D, True)
