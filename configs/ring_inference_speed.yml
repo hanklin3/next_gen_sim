@@ -126,6 +126,7 @@ gui: True
 sumocfg_file_name: "data/sumo/ring/circles.sumocfg"
 max_steps: 100
 
+
 ##### Metrics #######
 batch_size: 1
 dataloader_num_workers: 8  # num_workers

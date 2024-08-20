@@ -26,13 +26,12 @@ class Trainer(object):
     Model trainer. This class provides fundamental methods for model training and checkpoint management.
     """
 
-    def __init__(self, configs, dataloaders,
-                 sumo_cmd = ['sumo', '-c', 'data/sumo/ring/circles.sumocfg'],
-                 model_output='position'):
+    def __init__(self, configs, dataloaders):
 
         self.dataloaders = dataloaders
-        self.sumo_cmd = sumo_cmd
+        self.sumo_cmd = configs["sumo_cmd"]
         self.traci_label = "sumo_training"
+        print("model_trainer.py sumo_cmd: ", self.sumo_cmd)
 
         # input and output dimension
         self.input_dim = 4 * configs["history_length"]  # x, y, cos_heading, sin_heading
@@ -43,8 +42,8 @@ class Trainer(object):
         self.rolling_step = 1
         self.sim_resol = configs['sim_resol']
 
-        assert model_output in ['position', 'speed']
-        self.model_output = model_output  # position or speed
+        self.model_output = configs["model_output"]  # position or speed
+        assert self.model_output in ['position', 'speed']
 
         # initialize networks
         self.net_G = define_G(
@@ -503,8 +502,8 @@ class Trainer(object):
             buff_vid = torch.tensor(buff_vid, dtype=torch.float32).to(device)
             # print('veh_ids', veh_ids.shape, veh_ids) # [32, 10]
             # print('buff_vid', buff_vid.shape, buff_vid) # [32, 5]
-            assert torch.allclose(veh_ids[:, :self.history_length], buff_vid, equal_nan=True), (veh_ids[:, :self.history_length],
-                                                                                 buff_vid)
+            assert torch.allclose(veh_ids[:, :self.history_length], buff_vid, equal_nan=True), (
+                veh_ids[:, :self.history_length], buff_vid)
             
             TIME_BUFF = TIME_BUFF[self.rolling_step:]
 
@@ -518,6 +517,8 @@ class Trainer(object):
 
             input_matrix = input_matrix.unsqueeze(dim=0) # make sure the input has a shape of N x D. HL: 1 x N x D?
             one_input = one_input.unsqueeze(dim=0)
+            input_matrix = torch.tensor(input_matrix, dtype=torch.float32)
+            one_input = torch.tensor(one_input, dtype=torch.float32)
 
             input_matrix[torch.isnan(input_matrix)] = 0.0
 
@@ -525,7 +526,7 @@ class Trainer(object):
             mean_pos, std_pos, cos_sin_heading = self.net_G(input_matrix)
 
             if step - self.history_length + 1 == idx_history :
-                assert torch.allclose(one_input, input_matrix, equal_nan=True)
+                assert torch.allclose(one_input, input_matrix, equal_nan=True), (one_input, input_matrix)
                 is_first_match = True
                 # assert False, "ITs true in step"
 
@@ -610,11 +611,8 @@ class Trainer(object):
             
             # Iterate over data.
             for self.batch_id, batch in enumerate(self.dataloaders['train'], 0):
-                # self._forward_pass_sim(self, batch, idx_current, rollout=1)
-                # self._forward_pass(batch, rollout=1)
-                
-
                 self._forward_pass_sim(batch, rollout=1)
+                # self._forward_pass(batch, rollout=1)
                 print("batch['input']", batch['input'].shape)
                 print("batch['gt']", batch['gt'].shape)
                 print("self.batch['idx']", batch['idx'].shape, batch['idx'])

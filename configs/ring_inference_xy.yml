@@ -125,3 +125,4 @@ save_fps: 10
 gui: True
 sumocfg_file_name: "data/sumo/ring/circles.sumocfg"
 max_steps: 100
+step_length: 0.4

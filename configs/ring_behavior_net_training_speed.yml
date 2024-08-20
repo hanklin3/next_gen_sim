@@ -28,3 +28,4 @@ sim_resol: 0.4  # simulation resolution. unit: s
 gui: False
 sumocfg_file_name: "data/sumo/ring/circles.sumocfg"
 max_steps: 100
+

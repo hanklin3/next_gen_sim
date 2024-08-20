@@ -36,7 +36,7 @@ class MTLTrajectoryPredictionDataset(Dataset):
         assert model_output in ['position', 'speed']
         self.model_output = model_output  # position or speed
          
-        print('sumo_cmd', sumo_cmd)
+        print('dataset.py sumo_cmd', self.model_output)
 
 
         if self.dataset == 'rounD' or self.dataset == 'AA_rdbt' or self.dataset == 'ring':
@@ -208,15 +208,15 @@ class MTLTrajectoryPredictionDataset(Dataset):
         return augmented_input
 
 
-def get_loaders(configs, sumo_cmd):
+def get_loaders(configs):
 
     if configs["dataset"] == 'AA_rdbt' or configs["dataset"] == 'rounD' or configs["dataset"] == 'ring':
         training_set = MTLTrajectoryPredictionDataset(history_length=configs["history_length"], pred_length=configs["pred_length"],
                                                       max_num_vehicles=configs["max_num_vehicles"], is_train=True, dataset=configs["dataset"], 
-                                                      sumo_cmd=sumo_cmd, model_output=configs['model_output'])
+                                                      sumo_cmd=configs["sumo_cmd"], model_output=configs['model_output'])
         val_set = MTLTrajectoryPredictionDataset(history_length=configs["history_length"], pred_length=configs["pred_length"],
                                                  max_num_vehicles=configs["max_num_vehicles"], is_train=False, dataset=configs["dataset"], 
-                                                 sumo_cmd=sumo_cmd, model_output=configs['model_output'])
+                                                 sumo_cmd=configs["sumo_cmd"], model_output=configs['model_output'])
     else:
         raise NotImplementedError(
             'Wrong dataset name %s (choose one from [AA_rdbt, rounD,...])'

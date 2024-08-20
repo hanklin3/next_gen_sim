@@ -45,7 +45,8 @@ if __name__ == '__main__':
     sumo_cmd = ['sumo', '-c', 'data/sumo/ring/circles.sumocfg', '--step-length', "0.4"]
     sumo_cmd = set_sumo(configs['gui'], 
                     configs['sumocfg_file_name'], configs['max_steps'], configs['sim_resol'])
-    print('sumo_cmd', sumo_cmd)
+    configs["sumo_cmd"] = sumo_cmd
+    print('main_training.py sumo_cmd', configs["sumo_cmd"])
                 
     # Checkpoints and training process visualizations save paths
     experiment_name = args.experiment_name
@@ -59,9 +60,9 @@ if __name__ == '__main__':
     shutil.copyfile(args.config, save_path)
     
     # Initialize the DataLoader
-    dataloaders = datasets.get_loaders(configs, sumo_cmd)
+    dataloaders = datasets.get_loaders(configs)
     
-    m = Trainer(configs=configs, dataloaders=dataloaders, sumo_cmd=sumo_cmd)
+    m = Trainer(configs=configs, dataloaders=dataloaders)
     m.train_models()
     
     # for batch_id, batch in enumerate(dataloaders['train'], 0):
