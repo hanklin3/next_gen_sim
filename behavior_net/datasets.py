@@ -3,6 +3,7 @@ import pickle
 import os
 import glob
 import random
+import time
 import torch
 
 import logging
@@ -14,7 +15,7 @@ from trajectory_pool import TrajectoryPool
 
 # import simulation_modeling.utils as utils
 from . import utils
-from vehicle.utils_vehicle import to_vehicle, time_buff_to_traj_pool
+from vehicle.utils_vehicle import to_vehicle, time_buff_to_traj_pool, traci_get_vehicle_data
 
 
 class MTLTrajectoryPredictionDataset(Dataset):
@@ -86,7 +87,6 @@ class MTLTrajectoryPredictionDataset(Dataset):
         idx = 0,  then current at 4, ends at 7
         
         """
-
         # Give label to traci so it can run multiple instances in case dataloader is multi-threaded
         thread_id = np.random.randint(low=0, high=self.max_length)
         while thread_id in self.sumo_running_labels:
@@ -96,6 +96,7 @@ class MTLTrajectoryPredictionDataset(Dataset):
         sumo_label = f'sim_dataloader_{thread_id}'
         # print('Starting sumo id', sumo_label)
         traci.start(self.sumo_cmd, label=sumo_label)
+        # time.sleep(1)
         #######
 
         step = 0
@@ -107,29 +108,8 @@ class MTLTrajectoryPredictionDataset(Dataset):
         while step < idx + self.history_length + self.pred_length:
             traci.simulationStep()
             
-            assert step >= idx
-
-            car_list = traci.vehicle.getIDList()
-            vehicle_list = []
-            
-            for car_id in car_list:
-                x,y = traci.vehicle.getPosition(car_id)
-                angle_deg = traci.vehicle.getAngle(car_id)
-                speed = traci.vehicle.getSpeed(car_id)
-                # speed = traci.vehicle.getLateralSpeed(car_id)
-                acceleration = traci.vehicle.getAcceleration(car_id)
-                road_id = traci.vehicle.getRoadID(car_id)
-                lane_id = traci.vehicle.getLaneID(car_id)
-                lane_index = traci.vehicle.getLaneIndex(car_id)
-                # speed = traci.getSpeed(car_id)
-                # print(car_id, '(', x, y, ')', angle_deg, road_id, lane_index)
-                # print('road_id, lane_id', road_id, lane_index, type(road_id), type(lane_index))
-
-                # lat, lon, cos_heading, sin_heading = converter(x, y, angle_deg)
-                # print('lat, lon, cos_heading, sin_heading', 
-                #       lat, lon, cos_heading, sin_heading)
-                vehicle_list.append(to_vehicle(x, y, angle_deg, car_id, speed, road_id, 
-                                               lane_id, lane_index, acceleration))
+            assert step >= idx            
+            vehicle_list = traci_get_vehicle_data()
                 
             TIME_BUFF.append(vehicle_list)
             step += 1

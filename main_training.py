@@ -61,7 +61,7 @@ if __name__ == '__main__':
     # Initialize the DataLoader
     dataloaders = datasets.get_loaders(configs, sumo_cmd)
     
-    m = Trainer(configs=configs, dataloaders=dataloaders)
+    m = Trainer(configs=configs, dataloaders=dataloaders, sumo_cmd=sumo_cmd)
     m.train_models()
     
     # for batch_id, batch in enumerate(dataloaders['train'], 0):

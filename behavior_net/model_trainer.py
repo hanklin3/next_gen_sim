@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import os
 import json
 import random
+import time
 import traci
 
 import torch
@@ -452,7 +453,7 @@ class Trainer(object):
         self.G_pred_mean.append(mean_pos_cos_sin_heading)
         self.G_pred_std.append(std_pos)
 
-    def _forward_pass_sim_one_batch(self, one_input, idx_history, veh_ids):
+    def _forward_pass_sim_one_batch(self, one_input, idx_history, veh_ids, debug=True):
     
         outputs = {}
         outputs['mean_pos_cos_sin_heading'] = torch.zeros((self.m_tokens, self.output_dim)).to(device)
@@ -466,6 +467,7 @@ class Trainer(object):
         pred_sin_heading_loop = torch.zeros((self.m_tokens, self.pred_length)).to(device)
 
         traci.start(self.sumo_cmd, label=self.traci_label)
+        # time.sleep(1)
         step = 0
         while step < idx_history:
             traci.simulationStep()
@@ -473,7 +475,7 @@ class Trainer(object):
 
         idx_output = 0
         TIME_BUFF = []
-        is_first = True
+        is_first_match = False
         while step < idx_history + self.history_length + self.pred_length - 1:
             traci.simulationStep()
 
@@ -481,13 +483,15 @@ class Trainer(object):
             vehicle_list = traci_get_vehicle_data()
             TIME_BUFF.append(vehicle_list)
 
-            print('step added', step)
+            if debug:
+                print('step added', step)
 
             if step < idx_history + self.history_length - 1:
                 step += 1
                 continue
 
             assert len(TIME_BUFF) == self.history_length, len(TIME_BUFF)
+
             traj_pool = time_buff_to_traj_pool(TIME_BUFF)
 
             buff_lat, buff_lon, buff_cos_heading, buff_sin_heading, \
@@ -513,31 +517,27 @@ class Trainer(object):
             input_matrix = torch.tensor(input_matrix, dtype=torch.float32).to(device)
 
             input_matrix = input_matrix.unsqueeze(dim=0) # make sure the input has a shape of N x D. HL: 1 x N x D?
+            one_input = one_input.unsqueeze(dim=0)
 
             input_matrix[torch.isnan(input_matrix)] = 0.0
 
             # run prediction
             mean_pos, std_pos, cos_sin_heading = self.net_G(input_matrix)
 
-            if step == idx_history - 1:
-                print('idx_history -1',  torch.allclose(one_input, input_matrix))
-            if step == idx_history:
-                print('step ==0',  torch.allclose(one_input, input_matrix))
-            if step == idx_history + 1:
-                print('idx_history +1',  torch.allclose(one_input, input_matrix))
-            # if step == idx_history:
+            if step - self.history_length + 1 == idx_history :
+                assert torch.allclose(one_input, input_matrix, equal_nan=True)
+                is_first_match = True
+                # assert False, "ITs true in step"
 
-            # if step == idx_history + self.history_length - 1:
-            if is_first:
-            #     assert torch.allclose(one_input, input_matrix), (one_input, input_matrix)
-            #     assert False,  f'Passed! \n{(one_input, input_matrix)}'
-            #     is_first = False
-                outputs['x_history'] = input_matrix
+            # if torch.allclose(one_input, input_matrix, equal_nan=True):
+            #     print('step,', step)
+            #     print('idx_history', idx_history)
+            #     assert False, "ITs true"
 
             #####
             # remove batch
-            print('mean_pos', mean_pos.shape) # [1, 32, 10]
-            
+            # print('mean_pos', mean_pos.shape) # [1, 32, 10]
+            assert mean_pos.shape[0] == 1
             pred_lat_mean = mean_pos[:, :, 0:self.pred_length]
             pred_lon_mean = mean_pos[:, :, self.pred_length:]
             pred_lat_std = std_pos[:, :, 0:self.pred_length]
@@ -545,8 +545,8 @@ class Trainer(object):
             pred_cos_heading = cos_sin_heading[:, :, 0:self.pred_length]
             pred_sin_heading = cos_sin_heading[:, :, self.pred_length:]
 
-            print('pred_lat_mean_loop', pred_lat_mean_loop.shape)
-            print('pred_lat_mean', pred_lat_mean.shape)
+            # print('pred_lat_mean_loop', pred_lat_mean_loop.shape) # [32, 5]
+            # print('pred_lat_mean', pred_lat_mean.shape) # [1, 32, 5]
             assert pred_lat_mean.shape[0] == 1
             pred_lat_mean_loop[:, idx_output] = pred_lat_mean[0, :, 0]
             pred_lon_mean_loop[:, idx_output] = pred_lon_mean[0, :, 0]
@@ -576,10 +576,13 @@ class Trainer(object):
 
             idx_output += 1
             step += 1
+            if debug:
+                print("Next iteration")
 
         traci.close()
 
         assert idx_output == 5, idx_output
+        assert is_first_match, "Training: Input history didn't match the dataloader"
 
         outputs['mean_pos_cos_sin_heading'][:, :] = torch.cat(
             [pred_lat_mean_loop, pred_lon_mean_loop, pred_cos_heading_loop, 
@@ -604,10 +607,13 @@ class Trainer(object):
             self._clear_cache()
             self.is_training = True
             self.net_G.train()  # Set model to training mode
+            
             # Iterate over data.
             for self.batch_id, batch in enumerate(self.dataloaders['train'], 0):
                 # self._forward_pass_sim(self, batch, idx_current, rollout=1)
                 # self._forward_pass(batch, rollout=1)
+                
+
                 self._forward_pass_sim(batch, rollout=1)
                 print("batch['input']", batch['input'].shape)
                 print("batch['gt']", batch['gt'].shape)
