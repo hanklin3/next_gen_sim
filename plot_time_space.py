@@ -15,6 +15,7 @@ experiment = 'ring_xy_out2'
 experiment = 'ring_speed'
 experiment = 'ring_speed_acc_fixed_08-10-24'
 experiment = 'ring_position_fixed_08-09-24'
+experiment = 'ring_position_close_loop_8-20'
 
 path = f'./results/inference/behavior_net/{experiment}/df_traj_1000.csv'
 save_path = f'./results/inference/behavior_net/{experiment}'

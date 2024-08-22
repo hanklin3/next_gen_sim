@@ -3,6 +3,7 @@ import argparse
 import numpy as np
 import os
 import pandas as pd
+import shutil
 import sys
 import yaml
 
@@ -13,7 +14,8 @@ from utils import set_sumo
 from behavior_net.model_inference import Predictor
 from trajectory_pool import TrajectoryPool
 from vehicle import Vehicle
-from vehicle.utils_vehicle import to_vehicle, time_buff_to_traj_pool
+from vehicle.utils_vehicle import to_vehicle, time_buff_to_traj_pool, traci_get_vehicle_data
+import traci.constants as tc
 
 if 'SUMO_HOME' in os.environ:
     sys.path.append(os.path.join(os.environ['SUMO_HOME'], 'tools'))
@@ -30,8 +32,6 @@ parser.add_argument('--config', type=str, required=True,
                     help='The path to the training config file. E.g., ./configs\ring_inference.yml')
 args = parser.parse_args()
 
-path = 'configs/ring_inference.yml'
-
 with open(args.config) as file:
     try:
         configs = yaml.safe_load(file)
@@ -45,7 +45,9 @@ save_result_path = args.save_result_path
 experiment_name = args.experiment_name
 configs["checkpoint_dir"] = os.path.join(save_result_path, experiment_name, "checkpoints")  # The path to save trained checkpoints
 configs["vis_dir"] = os.path.join(save_result_path, experiment_name, "vis_training")  # The path to save training visualizations
-
+os.makedirs(os.path.join(save_result_path, experiment_name), exist_ok=False)
+save_path = os.path.join(save_result_path, experiment_name, "config.yml")
+shutil.copyfile(args.config, save_path)
 
 def converter(x, y, angles_deg):
     lat, lon = x, y
@@ -57,28 +59,6 @@ def converter(x, y, angles_deg):
     cos_heading = np.cos(heading)
     sin_heading = np.sin(heading)
     return lat, lon, cos_heading, sin_heading
-
-
-# def to_vehicle(x, y, angle_deg, id, speed, road_id, lane_id, lane_index):
-
-#     v = Vehicle()
-#     v.location.x = x
-#     v.location.y = y
-#     v.id = id
-#     # sumo: north, clockwise
-#     # yours: east, counterclockwise
-#     v.speed_heading = (-angle_deg + 90 ) % 360
-#     v.speed = speed
-#     v.road_id = road_id
-#     v.lane_id = lane_id
-#     v.lane_index = lane_index
-
-#     factor = 1
-#     v.size.length, v.size.width = 3.6*factor, 1.8*factor
-#     v.safe_size.length, v.safe_size.width = 3.8*factor, 2.0*factor
-#     v.update_poly_box_and_realworld_4_vertices()
-#     v.update_safe_poly_box()
-#     return v
 
 ########################################
 # Initialize the predictor process
@@ -122,7 +102,7 @@ TIME_BUFF = []
 rolling_step = configs['rolling_step']
 history_length = configs['history_length']
 sim_resol = configs['sim_resol']
-model_output = configs['model_model_output']
+model_output = configs['model_output_type']
 
 dataf = []
 df_predicted = []
@@ -134,37 +114,17 @@ while step < 1000:
     traci.simulationStep()
     
     step += 1
-
-    car_list = traci.vehicle.getIDList()
-    print('car_list', car_list)
-    vehicle_list = []
-    
-    for car_id in car_list:
-        x,y = traci.vehicle.getPosition(car_id)
-        angle_deg = traci.vehicle.getAngle(car_id)
-        speed = traci.vehicle.getSpeed(car_id)
-        # speed = traci.vehicle.getLateralSpeed(car_id)
-        acceleration = traci.vehicle.getAcceleration(car_id)
-        road_id = traci.vehicle.getRoadID(car_id)
-        lane_id = traci.vehicle.getLaneID(car_id)
-        lane_index = traci.vehicle.getLaneIndex(car_id)
-        # speed = traci.getSpeed(car_id)
-        # print(car_id, '(', x, y, ')', angle_deg, road_id, lane_index)
-        # print('road_id, lane_id', road_id, lane_index, type(road_id), type(lane_index))
-
-        # lat, lon, cos_heading, sin_heading = converter(x, y, angle_deg)
-        # print('lat, lon, cos_heading, sin_heading', 
-        #       lat, lon, cos_heading, sin_heading)
-        vehicle_list.append(to_vehicle(x, y, angle_deg, car_id, speed, road_id, 
-                                        lane_id, lane_index, acceleration))
         
-        if step > history_length:
-            dataf.append([int(0), step * sim_resol, int(car_id), 
-                        float(x), float(y)])
+    vehicle_list = traci_get_vehicle_data()
+
+    if step > history_length:
+        for veh in  vehicle_list:  
+            dataf.append([int(0), step * sim_resol, int(veh.id), 
+                        float(veh.location.x), float(veh.location.y)])
                 
     TIME_BUFF.append(vehicle_list)
         
-    if step < history_length - 1:
+    if step < history_length:
         continue
     
     assert len(TIME_BUFF) == history_length
@@ -185,8 +145,9 @@ while step < 1000:
 
     print('pred_lat', pred_lat.shape, pred_lat) # [32, 5]
     print('buff_vid', buff_vid.shape, buff_vid) # [32, 5], each row same car id
-    print('buff_road_id', buff_road_id.shape, buff_road_id, buff_road_id[0,0].decode('utf-8'))
-    print('buff_lane_id', buff_lane_index.shape, buff_lane_index, buff_lane_index[0,0])
+    # print('buff_road_id', buff_road_id.shape, buff_road_id, buff_road_id[0,0].decode('utf-8'))
+    print('buff_lane_index', buff_lane_index.shape, buff_lane_index, buff_lane_index[0,0])
+    print('buff_speed', buff_speed.shape, buff_speed)
 
     ## Record prediction to dataframe for metrics later
     rows, cols = buff_vid.shape
@@ -208,10 +169,15 @@ while step < 1000:
         if np.isnan(vid):
             continue
 
-        # model_output = 'position'
+        angle_deg = np.arccos(pred_cos_heading[row_idx][0])
+        lane_index = int(buff_lane_index[row_idx][0])
+        print('lane_index', lane_index)
+        
+
+        # model_output = 'position_dxdy'
         # model_output = 'speed'
         # model_output = 'no_set'
-        if model_output == 'position':
+        if model_output == 'position_dxdy':
             dx = np.diff(pred_lat[row_idx,:])
             dy = np.diff(pred_lon[row_idx,:])
             speed = np.sqrt(dx**2 + dy**2) / configs['sim_resol']
@@ -222,7 +188,19 @@ while step < 1000:
             # assert speed[0] > 0, (speed, pred_speed[row_idx,:], pred_speed[row_idx,:])
             traci.vehicle.setSpeed(str(int(vid)), speed[0])
             # traci.setPreviousSpeed(str(int(vid)), speed[0])
-        
+        elif model_output == 'position_xy':
+            keeproute = 1 # which will map the vehicle to the exact x and y positions
+            traci.vehicle.moveToXY(
+                str(int(vid)),
+                edgeID="",
+                # laneIndex=-1, #lane_index,
+                lane=-1,
+                x=pred_lat[row_idx,0], #front_bumper_xy_sumo[0],
+                y=pred_lon[row_idx,0], #front_bumper_xy_sumo[1],
+                angle=tc.INVALID_DOUBLE_VALUE, #(-angle_deg + 90 ) % 360,
+                # angle=(-angle_deg + 90 ) % 360,
+                keepRoute=keeproute,
+            )
         elif model_output == 'speed':
             ####################Speed
             # print('pred_speed', pred_speed[row_idx,0])

@@ -16,8 +16,9 @@ def to_vehicle(x, y, angle_deg, id, speed, road_id, lane_id, lane_index, acceler
     v.location.y = y
     v.id = id
     # sumo: north, clockwise
-    # yours: east, counterclockwise
-    v.speed_heading = (-angle_deg + 90 ) % 360
+    # NeuralNDE: east, counterclockwise
+    v.speed_heading = angle_deg #sumo -> NeuralNDE: (-angle_deg + 90 ) % 360
+    # v.speed_heading = (-angle_deg + 90 ) % 360 #NeuralNDE -> sumo: (-angle_deg + 90 ) % 360
     v.speed = speed
     v.road_id = road_id
     v.lane_id = lane_id
