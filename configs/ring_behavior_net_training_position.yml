@@ -7,7 +7,8 @@ model: transformer  # transformer or bn_mlp
 history_length: 5  # number of historical steps input to the model
 pred_length: 5  # number of predicted steps output by the model
 max_num_vehicles: 32  # maximum number of vehicles that can be handled by the model
-model_output: 'position'  # position, speed
+# model_output: "position_xy"  # use traci.vehicle.moveToXY()
+model_output: "position_dxdy"  # compute dx,dy, then use traci.vehicle.setSpeed()
 
 # Training settings
 batch_size: 32

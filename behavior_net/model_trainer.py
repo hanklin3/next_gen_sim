@@ -15,7 +15,8 @@ from .networks import define_G, define_D, set_requires_grad, define_safety_mappe
 from .loss import UncertaintyRegressionLoss, GANLoss
 from .metric import RegressionAccuracy
 from . import utils
-from vehicle.utils_vehicle import to_vehicle, time_buff_to_traj_pool, traci_get_vehicle_data
+from vehicle.utils_vehicle import (to_vehicle, time_buff_to_traj_pool, 
+                                   traci_get_vehicle_data, traci_set_vehicle_state)
 
 # Decide which device we want to run on
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -515,20 +516,21 @@ class Trainer(object):
             input_matrix = np.concatenate([buff_lat, buff_lon, buff_cos_heading, buff_sin_heading], axis=-1)
             input_matrix = torch.tensor(input_matrix, dtype=torch.float32).to(device)
 
-            input_matrix = input_matrix.unsqueeze(dim=0) # make sure the input has a shape of N x D. HL: 1 x N x D?
-            one_input = one_input.unsqueeze(dim=0)
-            input_matrix = torch.tensor(input_matrix, dtype=torch.float32)
-            one_input = torch.tensor(one_input, dtype=torch.float32)
+            input_matrix = input_matrix.unsqueeze(dim=0).type(torch.float32) # make sure the input has a shape of N x D. HL: 1 x N x D?
+            one_input = one_input.unsqueeze(dim=0).type(torch.float32)
 
             input_matrix[torch.isnan(input_matrix)] = 0.0
 
             # run prediction
             mean_pos, std_pos, cos_sin_heading = self.net_G(input_matrix)
 
-            if step - self.history_length + 1 == idx_history :
-                assert torch.allclose(one_input, input_matrix, equal_nan=True), (one_input, input_matrix)
-                is_first_match = True
+            if 'position' in self.model_output:
+                if step - self.history_length + 1 == idx_history :
+                    assert torch.allclose(one_input, input_matrix, equal_nan=True), (one_input, input_matrix)
+                    is_first_match = True
                 # assert False, "ITs true in step"
+            else:
+                is_first_match = True
 
             # if torch.allclose(one_input, input_matrix, equal_nan=True):
             #     print('step,', step)
@@ -543,8 +545,8 @@ class Trainer(object):
             pred_lon_mean = mean_pos[:, :, self.pred_length:]
             pred_lat_std = std_pos[:, :, 0:self.pred_length]
             pred_lon_std = std_pos[:, :, self.pred_length:]
-            pred_cos_heading = cos_sin_heading[:, :, 0:self.pred_length]
-            pred_sin_heading = cos_sin_heading[:, :, self.pred_length:]
+            pred_cos_heading_mean = cos_sin_heading[:, :, 0:self.pred_length]
+            pred_sin_heading_mean = cos_sin_heading[:, :, self.pred_length:]
 
             # print('pred_lat_mean_loop', pred_lat_mean_loop.shape) # [32, 5]
             # print('pred_lat_mean', pred_lat_mean.shape) # [1, 32, 5]
@@ -553,27 +555,22 @@ class Trainer(object):
             pred_lon_mean_loop[:, idx_output] = pred_lon_mean[0, :, 0]
             pred_lat_std_loop[:, idx_output] = pred_lat_std[0, :, 0]
             pred_lon_std_loop[:, idx_output] = pred_lon_std[0, :, 0]
-            pred_cos_heading_loop[:, idx_output] = pred_cos_heading[0, :, 0]
-            pred_sin_heading_loop[:, idx_output] = pred_sin_heading[0, :, 0]
+            pred_cos_heading_loop[:, idx_output] = pred_cos_heading_mean[0, :, 0]
+            pred_sin_heading_loop[:, idx_output] = pred_sin_heading_mean[0, :, 0]
 
             #### Feedback to next iteration ####
             pred_lat = pred_lat_mean[0, :, :]
             pred_lon = pred_lon_mean[0, :, :]
+            pred_cos_heading = pred_cos_heading_mean[0, :, :]
+            pred_sin_heading = pred_sin_heading_mean[0, :, :]
 
-            for row_idx, row in enumerate(buff_vid):
-                # print('row_idx, row', row_idx, row)
-                vid = row[0]
-                if torch.isnan(vid):
-                    continue
+            pred_speed = pred_lat
+            pred_acceleration = pred_lon
+            traci_set_vehicle_state(self.model_output, buff_vid.cpu().detach().numpy(),
+                pred_lat.cpu().detach().numpy(), pred_lon.cpu().detach().numpy(), 
+                pred_cos_heading.cpu().detach().numpy(), pred_sin_heading.cpu().detach().numpy(),
+                pred_speed.cpu().detach().numpy(), pred_acceleration.cpu().detach().numpy(), self.sim_resol)
 
-                if self.model_output == 'position':
-                    dx = torch.diff(pred_lat[row_idx,:])
-                    dy = torch.diff(pred_lon[row_idx,:])
-                    speed = torch.sqrt(dx**2 + dy**2) / self.sim_resol
-                    traci.vehicle.setSpeed(str(int(vid)), speed[0])
-                elif self.model_output == 'speed':
-                    pred_speed = pred_lat
-                    traci.vehicle.setSpeed(str(int(vid)), pred_speed[row_idx,0])
 
             idx_output += 1
             step += 1

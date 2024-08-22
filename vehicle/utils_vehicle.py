@@ -1,6 +1,8 @@
+import numpy as np
 from trajectory_pool import TrajectoryPool
 from vehicle import Vehicle
 import traci
+import traci.constants as tc
 
 def time_buff_to_traj_pool(TIME_BUFF):
     traj_pool = TrajectoryPool()
@@ -55,3 +57,64 @@ def traci_get_vehicle_data():
         vehicle_list.append(to_vehicle(x, y, angle_deg, car_id, speed, road_id, 
                                         lane_id, lane_index, acceleration))
     return vehicle_list
+
+
+def traci_set_vehicle_state(model_output, buff_vid,
+                            pred_lat, pred_lon, 
+                            pred_cos_heading, pred_sin_heading,
+                            pred_speed, pred_acceleration, sim_resol=0.4):
+    for row_idx, row in enumerate(buff_vid):
+        # print('row_idx, row', row_idx, row)
+        vid = row[0]
+        if np.isnan(vid):
+            continue
+
+        angle_deg = np.arccos(pred_cos_heading[row_idx][0])
+        # lane_index = int(buff_lane_index[row_idx][0])
+        # print('lane_index', lane_index)
+        
+        if model_output == 'position_dxdy':
+            dx = np.diff(pred_lat[row_idx,:])
+            dy = np.diff(pred_lon[row_idx,:])
+            speed = np.sqrt(dx**2 + dy**2) / sim_resol
+            # speed = max(dx / configs['sim_resol'], dy / configs['sim_resol'])
+            print('dx', dx.shape, dx)
+            # print('speed', speed)
+            
+            # assert speed[0] > 0, (speed, pred_speed[row_idx,:], pred_speed[row_idx,:])
+            traci.vehicle.setSpeed(str(int(vid)), speed[0])
+            # traci.setPreviousSpeed(str(int(vid)), speed[0])
+        elif model_output == 'position_xy':
+            keeproute = 1 # which will map the vehicle to the exact x and y positions
+            traci.vehicle.moveToXY(
+                str(int(vid)),
+                edgeID="",
+                # laneIndex=-1, #lane_index,
+                lane=-1,
+                x=pred_lat[row_idx,0], #front_bumper_xy_sumo[0],
+                y=pred_lon[row_idx,0], #front_bumper_xy_sumo[1],
+                # angle=tc.INVALID_DOUBLE_VALUE, #(-angle_deg + 90 ) % 360,
+                angle=angle_deg,
+                keepRoute=keeproute,
+            )
+        elif model_output == 'speed':
+            ####################Speed
+            # print('pred_speed', pred_speed[row_idx,0])
+            traci.vehicle.setSpeed(str(int(vid)), pred_speed[row_idx,0])
+        elif model_output == 'no_set':
+            pass
+        elif model_output == 'acceleration':
+            ####################Acce
+            # print('pred_acceleration', pred_acceleration[row_idx,0])
+            # traci.vehicle.setAcceleration(str(int(vid)), pred_acceleration[row_idx,0], 0.4)
+            traci.vehicle.setAccel(str(int(vid)), pred_acceleration[row_idx,0])
+            #####################
+            # dx = np.diff(buff_lat[row_idx,:], n=2)
+            # dy = np.diff(buff_lon[row_idx,:], n=2)
+            # acceleration = np.sqrt(dx**2 + dy**2) / configs['sim_resol']
+            
+            # print('acceleration', acceleration)
+            
+            # traci.vehicle.setAcceleration(str(int(vid)), acceleration[0], 0.1)
+        else:
+            assert False, "Unsupported model output type"

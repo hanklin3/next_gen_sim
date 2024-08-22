@@ -14,8 +14,8 @@ from utils import set_sumo
 from behavior_net.model_inference import Predictor
 from trajectory_pool import TrajectoryPool
 from vehicle import Vehicle
-from vehicle.utils_vehicle import to_vehicle, time_buff_to_traj_pool, traci_get_vehicle_data
-import traci.constants as tc
+from vehicle.utils_vehicle import (to_vehicle, time_buff_to_traj_pool, 
+    traci_get_vehicle_data, traci_set_vehicle_state)
 
 if 'SUMO_HOME' in os.environ:
     sys.path.append(os.path.join(os.environ['SUMO_HOME'], 'tools'))
@@ -45,7 +45,7 @@ save_result_path = args.save_result_path
 experiment_name = args.experiment_name
 configs["checkpoint_dir"] = os.path.join(save_result_path, experiment_name, "checkpoints")  # The path to save trained checkpoints
 configs["vis_dir"] = os.path.join(save_result_path, experiment_name, "vis_training")  # The path to save training visualizations
-os.makedirs(os.path.join(save_result_path, experiment_name), exist_ok=False)
+os.makedirs(os.path.join(save_result_path, experiment_name), exist_ok=True)
 save_path = os.path.join(save_result_path, experiment_name, "config.yml")
 shutil.copyfile(args.config, save_path)
 
@@ -102,7 +102,7 @@ TIME_BUFF = []
 rolling_step = configs['rolling_step']
 history_length = configs['history_length']
 sim_resol = configs['sim_resol']
-model_output = configs['model_output_type']
+model_output = configs['model_output']
 
 dataf = []
 df_predicted = []
@@ -163,73 +163,10 @@ while step < 1000:
             df_predicted.append([int(0), (step+1) * sim_resol, int(next_vid), 
                                 float(nextx), float(nexty)])
     
-    for row_idx, row in enumerate(buff_vid):
-        print('row_idx, row', row_idx, row)
-        vid = row[0]
-        if np.isnan(vid):
-            continue
-
-        angle_deg = np.arccos(pred_cos_heading[row_idx][0])
-        lane_index = int(buff_lane_index[row_idx][0])
-        print('lane_index', lane_index)
-        
-
-        # model_output = 'position_dxdy'
-        # model_output = 'speed'
-        # model_output = 'no_set'
-        if model_output == 'position_dxdy':
-            dx = np.diff(pred_lat[row_idx,:])
-            dy = np.diff(pred_lon[row_idx,:])
-            speed = np.sqrt(dx**2 + dy**2) / configs['sim_resol']
-            # speed = max(dx / configs['sim_resol'], dy / configs['sim_resol'])
-            print('dx', dx.shape, dx)
-            # print('speed', speed)
-            
-            # assert speed[0] > 0, (speed, pred_speed[row_idx,:], pred_speed[row_idx,:])
-            traci.vehicle.setSpeed(str(int(vid)), speed[0])
-            # traci.setPreviousSpeed(str(int(vid)), speed[0])
-        elif model_output == 'position_xy':
-            keeproute = 1 # which will map the vehicle to the exact x and y positions
-            traci.vehicle.moveToXY(
-                str(int(vid)),
-                edgeID="",
-                # laneIndex=-1, #lane_index,
-                lane=-1,
-                x=pred_lat[row_idx,0], #front_bumper_xy_sumo[0],
-                y=pred_lon[row_idx,0], #front_bumper_xy_sumo[1],
-                angle=tc.INVALID_DOUBLE_VALUE, #(-angle_deg + 90 ) % 360,
-                # angle=(-angle_deg + 90 ) % 360,
-                keepRoute=keeproute,
-            )
-        elif model_output == 'speed':
-            ####################Speed
-            # print('pred_speed', pred_speed[row_idx,0])
-            traci.vehicle.setSpeed(str(int(vid)), pred_speed[row_idx,0])
-        elif model_output == 'no_set':
-            pass
-        elif model_output == 'acceleration':
-            ####################Acce
-            # print('pred_acceleration', pred_acceleration[row_idx,0])
-            # traci.vehicle.setAcceleration(str(int(vid)), pred_acceleration[row_idx,0], 0.4)
-            traci.vehicle.setAccel(str(int(vid)), pred_acceleration[row_idx,0])
-            #####################
-            # dx = np.diff(buff_lat[row_idx,:], n=2)
-            # dy = np.diff(buff_lon[row_idx,:], n=2)
-            # acceleration = np.sqrt(dx**2 + dy**2) / configs['sim_resol']
-            
-            # print('acceleration', acceleration)
-            
-            # traci.vehicle.setAcceleration(str(int(vid)), acceleration[0], 0.1)
-
-        #####################
-        # traci.vehicle.moveToXY(str(int(vid)), buff_road_id[row_idx, 0].decode('utf-8'), 
-        #                 buff_lane_index[row_idx, 0], 
-        #                 x=pred_lat[row_idx,0], y=pred_lon[row_idx,0])
-        # traci.vehicle.moveToXY(str(int(vid)), buff_road_id[row_idx, 0].decode('utf-8'), 
-        #         0, 
-        #         x=buff_lat[row_idx,1], y=buff_lon[row_idx,1])
-        else:
-            assert False, "Unsupported model output type"
+    traci_set_vehicle_state(model_output, buff_vid,
+                            pred_lat, pred_lon, 
+                            pred_cos_heading, pred_sin_heading,
+                            pred_speed, pred_acceleration, configs['sim_resol'])
 
 traci.close()
 
