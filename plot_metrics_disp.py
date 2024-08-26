@@ -17,15 +17,26 @@ experiment = 'ring_speed_acc'
 experiment = 'ring_xy_out2'
 experiment = 'ring_speed'
 
+# ### model position vs sumo position (model xy->speed->sumo xy)
+# path = f'./results/inference/behavior_net/{experiment}/df_traj_1000.csv'
+# path_pred = f'./results/inference/behavior_net/{experiment}/df_traj_pred_1000.csv'
+# exp_type = 'model_vs_controller_xy'
+
+# ### log vs model close-loop
+# path = f'./results/inference/behavior_net/{experiment}/df_traj_gt_1000.csv'
+# path_pred = f'./results/inference/behavior_net/{experiment}/df_traj_1000.csv'
+# exp_type = 'close-loop'
+
 ### model position vs sumo position (model xy->speed->sumo xy)
-path = f'./results/inference/behavior_net/{experiment}/df_traj_1000.csv'
-path_pred = f'./results/inference/behavior_net/{experiment}/df_traj_pred_1000.csv'
+path = f'./results/inference/behavior_net/{experiment}/df_traj_sumo_close_1000.csv'
+path_pred = f'./results/inference/behavior_net/{experiment}/df_traj_pred_open_loop_1000.csv'
 exp_type = 'model_vs_controller_xy'
 
 ### log vs model close-loop
-path = f'./results/inference/behavior_net/{experiment}/df_traj_gt_1000.csv'
-path_pred = f'./results/inference/behavior_net/{experiment}/df_traj_1000.csv'
+path = f'./results/inference/behavior_net/{experiment}/df_traj_sumo_gt_1000.csv'
+path_pred = f'./results/inference/behavior_net/{experiment}/df_traj_pred_close_loop_1000.csv'
 exp_type = 'close-loop'
+
 
 ### log vs model open-loop
 # path = f'./results/inference/behavior_net/{experiment}/df_traj_gt_1000.csv'

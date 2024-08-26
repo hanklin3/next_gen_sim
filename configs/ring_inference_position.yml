@@ -24,9 +24,11 @@ dataset: "ring"
 history_length: 5  # number of historical steps input to the model
 pred_length: 5  # number of predicted steps output by the model
 m_tokens: 32  # maximum number of vehicles that can be handled by the model
-# model_output: "position_xy"  # use traci.vehicle.moveToXY()
-model_output: "position_dxdy"  # compute dx,dy, then use traci.vehicle.setSpeed()
+model_output: "position_xy"  # use traci.vehicle.moveToXY()
+# model_output: "position_dxdy"  # compute dx,dy, then use traci.vehicle.setSpeed()
+# model_output: "no_set"  # not set traci, sumo log data
 
+# experiment_name: &experiment ring_position_close_loop_8-20
 # Checkpoints of the trained models (behavior modeling net, safety mapping net, etc.)
 # behavior_model_ckpt_dir: "./results/training/behavior_net/ring_behavior_net_training_0.4_no_jump2/checkpoints/last_ckpt.pt"
 # behavior_model_ckpt_dir: "./results/training/behavior_net/ring_1/checkpoints/last_ckpt.pt"

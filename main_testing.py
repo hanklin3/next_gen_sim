@@ -24,7 +24,7 @@ sumo_binary = os.path.join(os.environ['SUMO_HOME'], 'bin', 'sumo')
 sumo_cmd = ['sumo', '-c', 'data/sumo/ring/circles.sumocfg', '--step-length', "0.4"]
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--experiment-name', type=str, required=True,
+parser.add_argument('--experiment-name', type=str, default=r'',
                     help='The name of the experiment folder where the data will be stored')
 parser.add_argument('--save-result-path', type=str, default=r'./results/inference/behavior_net',
                     help='The path to save the training results, a folder with experiment_name will be created in the path')
@@ -43,6 +43,9 @@ with open(args.config) as file:
 
 save_result_path = args.save_result_path
 experiment_name = args.experiment_name
+if experiment_name == '':
+    experiment_name = configs['behavior_model_ckpt_dir'].split('/')[4]
+print('experiment_name:', experiment_name)
 configs["checkpoint_dir"] = os.path.join(save_result_path, experiment_name, "checkpoints")  # The path to save trained checkpoints
 configs["vis_dir"] = os.path.join(save_result_path, experiment_name, "vis_training")  # The path to save training visualizations
 os.makedirs(os.path.join(save_result_path, experiment_name), exist_ok=True)
@@ -107,8 +110,9 @@ model_output = configs['model_output']
 dataf = []
 df_predicted = []
 
+step_max = 1000
 step = 0
-while step < 1000:
+while step < step_max:
     print(step)
 
     traci.simulationStep()
@@ -118,9 +122,9 @@ while step < 1000:
     vehicle_list = traci_get_vehicle_data()
 
     if step > history_length:
-        for veh in  vehicle_list:  
+        for veh in vehicle_list:  
             dataf.append([int(0), step * sim_resol, int(veh.id), 
-                        float(veh.location.x), float(veh.location.y)])
+                        float(veh.location.x), float(veh.location.y), float(veh.speed)])
                 
     TIME_BUFF.append(vehicle_list)
         
@@ -157,11 +161,12 @@ while step < 1000:
             icol = 0
             nextx, nexty = pred_lat[irow, icol], pred_lon[irow, icol]
             next_vid = buff_vid[irow, icol]
+            next_speed = pred_speed[irow, icol]
             if np.isnan(next_vid):
                 # reach max vehicles
                 continue
             df_predicted.append([int(0), (step+1) * sim_resol, int(next_vid), 
-                                float(nextx), float(nexty)])
+                                float(nextx), float(nexty), float(next_speed)])
     
     traci_set_vehicle_state(model_output, buff_vid,
                             pred_lat, pred_lon, 
@@ -178,7 +183,7 @@ os.makedirs(save_path, exist_ok=True)
 
 arr = np.asarray(dataf)
 df_traj = pd.DataFrame(arr,
-                       columns=['Simulation No', 'Time', 'Car', 'x', 'y'])
+                       columns=['Simulation No', 'Time', 'Car', 'x', 'y', 'Speed'])
 df_traj['Simulation No'] = df_traj['Simulation No'].astype(int)
 df_traj['Car'] = df_traj['Car'].astype(int)
 
@@ -249,23 +254,25 @@ print(np.unique(df_traj['Car']))
 ###########################
 # Save sumo simuilation dataframe
 if model_output == 'no_set':
-    save_file = os.path.join(save_path, f'df_traj_gt_{1000}.csv')
+    save_file = os.path.join(save_path, f'df_traj_sumo_gt_{step_max}.csv')  # sumo gt log
 else:
-    save_file = os.path.join(save_path, f'df_traj_{1000}.csv')
+    save_file = os.path.join(save_path, f'df_traj_sumo_close_{step_max}.csv')  # sumo log close loop
 df_traj.to_csv(save_file)
 print('saved to ', save_file)
 ########################################
 # Save model prediction dataframe
 arr_predicted = np.asarray(df_predicted)
 df_traj_predicted = pd.DataFrame(arr_predicted,
-                       columns=['Simulation No', 'Time', 'Car', 'x', 'y'])
+                       columns=['Simulation No', 'Time', 'Car', 'x', 'y', 'Speed'])
 df_traj_predicted['Simulation No'] = df_traj['Simulation No'].astype(int)
 df_traj_predicted['Car'] = df_traj['Car'].astype(int)
+pos2 = get_pos2(df_traj_predicted['x'].values, df_traj_predicted['y'].values)
+df_traj_predicted.insert(len(df_traj_predicted.columns), "Position", pos2)
 
 if model_output == 'no_set':
-    save_file = os.path.join(save_path, f'df_traj_pred_open_loop_{1000}.csv')
+    save_file = os.path.join(save_path, f'df_traj_pred_open_loop_{step_max}.csv')  # model open loop pred on log data
 else:
-    save_file = os.path.join(save_path, f'df_traj_pred_{1000}.csv')
+    save_file = os.path.join(save_path, f'df_traj_pred_close_loop_{step_max}.csv') # model close loop pred on log data
 df_traj_predicted.to_csv(save_file)
 print('saved to ', save_file)
 ##########################

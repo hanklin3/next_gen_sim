@@ -33,7 +33,7 @@ class MTLTrajectoryPredictionDataset(Dataset):
         self.max_length = 1000
         self.sumo_cmd = sumo_cmd
         self.sumo_running_labels = []
-        assert model_output in ['position', 'speed']
+
         self.model_output = model_output  # position or speed
          
         print('dataset.py sumo_cmd', self.model_output)
