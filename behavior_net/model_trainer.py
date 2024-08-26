@@ -44,6 +44,7 @@ class Trainer(object):
         self.sim_resol = configs['sim_resol']
 
         self.model_output = configs["model_output"]  # position or speed
+        assert 'position' in self.model_output or 'speed' in self.model_output
 
         # initialize networks
         self.net_G = define_G(
@@ -507,7 +508,7 @@ class Trainer(object):
             
             TIME_BUFF = TIME_BUFF[self.rolling_step:]
 
-            if self.model_output == 'position':
+            if self.model_output == 'position' or 'position' in self.model_output:
                 buff_lat, buff_lon = buff_lat, buff_lon
             elif self.model_output == 'speed':
                 buff_lat, buff_lon = buff_speed, buff_acc

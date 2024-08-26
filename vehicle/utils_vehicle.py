@@ -30,8 +30,8 @@ def to_vehicle(x, y, angle_deg, id, speed, road_id, lane_id, lane_index, acceler
     factor = 1
     v.size.length, v.size.width = 3.6*factor, 1.8*factor
     v.safe_size.length, v.safe_size.width = 3.8*factor, 2.0*factor
-    v.update_poly_box_and_realworld_4_vertices()
-    v.update_safe_poly_box()
+    # v.update_poly_box_and_realworld_4_vertices()
+    # v.update_safe_poly_box()
     return v
 
 def traci_get_vehicle_data():
@@ -78,7 +78,7 @@ def traci_set_vehicle_state(model_output, buff_vid,
             dy = np.diff(pred_lon[row_idx,:])
             speed = np.sqrt(dx**2 + dy**2) / sim_resol
             # speed = max(dx / configs['sim_resol'], dy / configs['sim_resol'])
-            print('dx', dx.shape, dx)
+            # print('dx', dx.shape, dx) # (4,)
             # print('speed', speed)
             
             # assert speed[0] > 0, (speed, pred_speed[row_idx,:], pred_speed[row_idx,:])

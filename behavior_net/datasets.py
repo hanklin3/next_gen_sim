@@ -35,6 +35,7 @@ class MTLTrajectoryPredictionDataset(Dataset):
         self.sumo_running_labels = []
 
         self.model_output = model_output  # position or speed
+        assert 'position' in self.model_output or 'speed' in self.model_output
          
         print('dataset.py sumo_cmd', self.model_output)
 
@@ -129,7 +130,6 @@ class MTLTrajectoryPredictionDataset(Dataset):
             traj_pool.flatten_trajectory(
             time_length=self.history_length+self.pred_length, max_num_vehicles=self.max_num_vehicles, output_vid=True)
 
-        assert 'position' in self.model_output or 'speed' in self.model_output
         if self.model_output == 'position' or 'position' in self.model_output:
             input_matrix, gt_matrix = self.make_training_data_pair(buff_lat, buff_lon, buff_cos_heading, buff_sin_heading)
         elif self.model_output == 'speed':
