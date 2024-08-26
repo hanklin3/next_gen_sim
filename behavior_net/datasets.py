@@ -129,7 +129,8 @@ class MTLTrajectoryPredictionDataset(Dataset):
             traj_pool.flatten_trajectory(
             time_length=self.history_length+self.pred_length, max_num_vehicles=self.max_num_vehicles, output_vid=True)
 
-        if self.model_output == 'position':
+        assert 'position' in self.model_output or 'speed' in self.model_output
+        if self.model_output == 'position' or 'position' in self.model_output:
             input_matrix, gt_matrix = self.make_training_data_pair(buff_lat, buff_lon, buff_cos_heading, buff_sin_heading)
         elif self.model_output == 'speed':
             input_matrix, gt_matrix = self.make_training_data_pair(buff_speed, buff_acc, buff_cos_heading, buff_sin_heading)
