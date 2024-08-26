@@ -44,7 +44,6 @@ class Trainer(object):
         self.sim_resol = configs['sim_resol']
 
         self.model_output = configs["model_output"]  # position or speed
-        assert self.model_output in ['position', 'speed']
 
         # initialize networks
         self.net_G = define_G(
