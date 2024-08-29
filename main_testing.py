@@ -8,6 +8,8 @@ import sys
 import yaml
 
 import matplotlib.pyplot as plt
+# import libsumo as traci
+import traci
 
 from utils import set_sumo
 # from behavior_net import datasets
@@ -95,8 +97,6 @@ sumo_cmd = set_sumo(configs['gui'],
 # sumo_cmd = set_sumo(configs['gui'], 
 #                     configs['sumocfg_file_name'], configs['max_steps'])
 print('sumo_cmd', sumo_cmd)
-
-import traci
 
 traci.start(sumo_cmd)
 # %%

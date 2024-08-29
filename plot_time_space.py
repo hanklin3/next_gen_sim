@@ -19,7 +19,8 @@ experiment = 'ring_position_fixed_08-09-24'
 experiment = 'ring_speed_close_firstNoMatch_08-22-24'
 experiment = 'ring_position_test'
 experiment = 'ring_position_close_loop_8-20'
-experiment = 'ring_speed_close_firstNoMatch_08-22-24'
+experiment = 'ring_position_fixed_08-09-24__dxdy'
+# experiment = 'ring_speed_close_firstNoMatch_08-22-24'
 # experiment = 'ring_speed_open_8-20'
 
 save_path = f'./results/inference/behavior_net/{experiment}'
@@ -51,8 +52,8 @@ traj_gt = get_traj(path)
 traj_pred = get_traj(path_pred)
 
 time_gt = 300
-traj_gt = traj_gt[traj_gt['Time'] > time_gt]
-traj_pred = traj_pred[traj_pred['Time'] > time_gt]
+traj_gt = traj_gt[traj_gt['Time'] >= time_gt]
+traj_pred = traj_pred[traj_pred['Time'] >= time_gt]
 
 traj_list = [traj_gt, traj_pred]
 title_list = ['groundtruth', 'model']
@@ -126,6 +127,6 @@ sm.set_array([])  # Only needed for the colorbar
 fig.colorbar(sm, ax=axis, label='Speed')
 # fig.colorbar(sm, ax=axis.ravel().tolist(), label='Speed') # for multiple axis
 
-save_pgn = os.path.join(save_path, 'time_space_diagram_300.png')
+save_pgn = os.path.join(save_path, f'time_space_diagram_{time_gt}.png')
 fig.savefig(save_pgn)
 print('Saved to ', save_pgn)

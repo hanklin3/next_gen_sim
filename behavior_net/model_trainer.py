@@ -4,7 +4,7 @@ import os
 import json
 import random
 import time
-import traci
+import libsumo as traci
 
 import torch
 import torch.optim as optim
