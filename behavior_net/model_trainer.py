@@ -4,7 +4,8 @@ import os
 import json
 import random
 import time
-import libsumo as traci
+# import libsumo as traci
+import traci
 
 import torch
 import torch.optim as optim
@@ -467,6 +468,7 @@ class Trainer(object):
         pred_sin_heading_loop = torch.zeros((self.m_tokens, self.pred_length)).to(device)
 
         traci.start(self.sumo_cmd, label=self.traci_label)
+        # traci.start(self.sumo_cmd)
         # time.sleep(1)
         step = 0
         while step < idx_history:
