@@ -143,7 +143,8 @@ class MTLTrajectoryPredictionDataset(Dataset):
         idx = torch.tensor(idx, dtype=torch.float32)
         buff_vid = torch.tensor(buff_vid, dtype=torch.float32)
         data = {'input': input_matrix, 'gt': gt_matrix, 'idx': idx, 'vehicle_ids': buff_vid,
-                'buff_speed': buff_speed, 'buff_lat': buff_lat, 'speed': speeds_list}
+                # 'buff_speed': buff_speed, 'buff_lat': buff_lat, 'speed': speeds_list
+                }
 
         return data
 

@@ -446,9 +446,10 @@ class Trainer(object):
 
         for i_batch in range(batch_size):
             outputs = self._forward_pass_sim_one_batch(self.x[i_batch], idx[i_batch], veh_ids[i_batch], 
-                                                       buff_speed_dl=batch['buff_speed'][i_batch].to(device),
-                                                       buff_lat_dl=batch['buff_lat'][i_batch].to(device),
-                                                       speeds_list_dl=batch['speed'][i_batch])
+                                                    #    buff_speed_dl=batch['buff_speed'][i_batch].to(device),
+                                                    #    buff_lat_dl=batch['buff_lat'][i_batch].to(device),
+                                                    #    speeds_list_dl=batch['speed'][i_batch]
+                                                       )
             mean_pos_cos_sin_heading[i_batch,:,:] = outputs['mean_pos_cos_sin_heading'].to(device)
             std_pos[i_batch,:,:] = outputs['std_pos'].to(device)
             # self.x[i_batch,:,:] = outputs['x_history'].to(device)
@@ -536,8 +537,10 @@ class Trainer(object):
             if 'position' in self.model_output or self.model_output == 'speed':
                 if step - self.history_length + 1 == idx_history :
                     assert torch.allclose(one_input, input_matrix, equal_nan=True), (
-                        one_input, input_matrix, buff_lat_dl, buff_lat, buff_speed_dl, buff_speed, 
-                        speeds_list_dl[0], speeds_list[0])
+                        one_input, input_matrix, 
+                        # buff_lat_dl, buff_lat, buff_speed_dl, buff_speed, 
+                        # speeds_list_dl[0], speeds_list[0]
+                        )
                     is_first_match = True
                 # assert False, "ITs true in step"
             else:
