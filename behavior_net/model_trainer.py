@@ -445,7 +445,10 @@ class Trainer(object):
         std_pos = torch.zeros((batch_size, self.m_tokens, 2 * self.pred_length)).to(device)
 
         for i_batch in range(batch_size):
-            outputs = self._forward_pass_sim_one_batch(self.x[i_batch], idx[i_batch], veh_ids[i_batch])
+            outputs = self._forward_pass_sim_one_batch(self.x[i_batch], idx[i_batch], veh_ids[i_batch], 
+                                                       buff_speed_dl=batch['buff_speed'][i_batch].to(device),
+                                                       buff_lat_dl=batch['buff_lat'][i_batch].to(device),
+                                                       speeds_list_dl=batch['speed'][i_batch])
             mean_pos_cos_sin_heading[i_batch,:,:] = outputs['mean_pos_cos_sin_heading'].to(device)
             std_pos[i_batch,:,:] = outputs['std_pos'].to(device)
             # self.x[i_batch,:,:] = outputs['x_history'].to(device)
@@ -454,7 +457,8 @@ class Trainer(object):
         self.G_pred_mean.append(mean_pos_cos_sin_heading)
         self.G_pred_std.append(std_pos)
 
-    def _forward_pass_sim_one_batch(self, one_input, idx_history, veh_ids, debug=True):
+    def _forward_pass_sim_one_batch(self, one_input, idx_history, veh_ids, debug=True, 
+                                    buff_speed_dl=None, buff_lat_dl=None, speeds_list_dl=None):
     
         outputs = {}
         outputs['mean_pos_cos_sin_heading'] = torch.zeros((self.m_tokens, self.output_dim)).to(device)
@@ -478,12 +482,16 @@ class Trainer(object):
         idx_output = 0
         TIME_BUFF = []
         is_first_match = False
+        speeds_list = []
         while step < idx_history + self.history_length + self.pred_length - 1:
             traci.simulationStep()
 
             assert step >= idx_history
             vehicle_list = traci_get_vehicle_data()
             TIME_BUFF.append(vehicle_list)
+
+            speeds = [v.speed for v in vehicle_list]
+            speeds_list.append(speeds)
 
             if debug:
                 print('step added', step)
@@ -507,15 +515,14 @@ class Trainer(object):
             # print('buff_vid', buff_vid.shape, buff_vid) # [32, 5]
             assert torch.allclose(veh_ids[:, :self.history_length], buff_vid, equal_nan=True), (
                 veh_ids[:, :self.history_length], buff_vid)
-            
-            TIME_BUFF = TIME_BUFF[self.rolling_step:]
 
             if self.model_output == 'position' or 'position' in self.model_output:
-                buff_lat, buff_lon = buff_lat, buff_lon
+                buff1, buff2 = buff_lat, buff_lon
             elif self.model_output == 'speed':
-                buff_lat, buff_lon = buff_speed, buff_acc
+                buff1, buff2 = buff_speed, buff_acc
 
-            input_matrix = np.concatenate([buff_lat, buff_lon, buff_cos_heading, buff_sin_heading], axis=-1)
+            # buff_lat.shape [32, 5]
+            input_matrix = np.concatenate([buff1, buff2, buff_cos_heading, buff_sin_heading], axis=-1)
             input_matrix = torch.tensor(input_matrix, dtype=torch.float32).to(device)
 
             input_matrix = input_matrix.unsqueeze(dim=0).type(torch.float32) # make sure the input has a shape of N x D. HL: 1 x N x D?
@@ -526,13 +533,17 @@ class Trainer(object):
             # run prediction
             mean_pos, std_pos, cos_sin_heading = self.net_G(input_matrix)
 
-            if 'position' in self.model_output:
+            if 'position' in self.model_output or self.model_output == 'speed':
                 if step - self.history_length + 1 == idx_history :
-                    assert torch.allclose(one_input, input_matrix, equal_nan=True), (one_input, input_matrix)
+                    assert torch.allclose(one_input, input_matrix, equal_nan=True), (
+                        one_input, input_matrix, buff_lat_dl, buff_lat, buff_speed_dl, buff_speed, 
+                        speeds_list_dl[0], speeds_list[0])
                     is_first_match = True
                 # assert False, "ITs true in step"
             else:
                 is_first_match = True
+
+            TIME_BUFF = TIME_BUFF[self.rolling_step:]
 
             # if torch.allclose(one_input, input_matrix, equal_nan=True):
             #     print('step,', step)

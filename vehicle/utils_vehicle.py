@@ -71,6 +71,7 @@ def traci_set_vehicle_state(model_output, buff_vid,
 
         rad2deg = 180.0 / np.pi
         angle_deg = np.arccos(pred_cos_heading[row_idx][0]) * rad2deg
+        print('angle_deg', angle_deg)
         # lane_index = int(buff_lane_index[row_idx][0])
         # print('lane_index', lane_index)
         
@@ -86,7 +87,12 @@ def traci_set_vehicle_state(model_output, buff_vid,
             traci.vehicle.setSpeed(str(int(vid)), speed[0])
             # traci.setPreviousSpeed(str(int(vid)), speed[0])
         elif model_output == 'position_xy':
-            keeproute = 1 # which will map the vehicle to the exact x and y positions
+            # If keepRoute is set to 1, the closest position
+            # within the existing route is taken. If keepRoute is set to 0, the vehicle may move to
+            # any edge in the network but its route then only consists of that edge.
+            # If keepRoute is set to 2 the vehicle has all the freedom of keepRoute=0
+            # but in addition to that may even move outside the road network.
+            keeproute = 2 # which will map the vehicle to the exact x and y positions
             traci.vehicle.moveToXY(
                 str(int(vid)),
                 edgeID="",

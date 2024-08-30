@@ -106,15 +106,18 @@ class MTLTrajectoryPredictionDataset(Dataset):
             step += 1
         
         TIME_BUFF = []
+        speeds_list = []
         while step < idx + self.history_length + self.pred_length:
             traci.simulationStep()
             
             assert step >= idx            
             vehicle_list = traci_get_vehicle_data()
+            speeds = [v.speed for v in vehicle_list]
+            speeds_list.append(speeds)
                 
             TIME_BUFF.append(vehicle_list)
             step += 1
-            
+
         traci.close()
         # print('self.sumo_running_labels', self.sumo_running_labels)
         # 'mux' switch to remove tracking thread label
@@ -139,7 +142,8 @@ class MTLTrajectoryPredictionDataset(Dataset):
         gt_matrix = torch.tensor(gt_matrix, dtype=torch.float32)
         idx = torch.tensor(idx, dtype=torch.float32)
         buff_vid = torch.tensor(buff_vid, dtype=torch.float32)
-        data = {'input': input_matrix, 'gt': gt_matrix, 'idx': idx, 'vehicle_ids': buff_vid}
+        data = {'input': input_matrix, 'gt': gt_matrix, 'idx': idx, 'vehicle_ids': buff_vid,
+                'buff_speed': buff_speed, 'buff_lat': buff_lat, 'speed': speeds_list}
 
         return data
 

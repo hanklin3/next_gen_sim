@@ -100,8 +100,6 @@ class TrajectoryPool(object):
             for j in range(len(ts)):
                 lat, lon = vs[j].location.x, vs[j].location.y
                 heading = np.radians(vs[j].speed_heading)  # Convert degrees to radians
-                speed = vs[j].speed
-                acceleration = vs[j].acceleration
                 if lat is None:
                     continue
                 t = self.t_latest - ts[j]
@@ -111,8 +109,8 @@ class TrajectoryPool(object):
                 buff_lon[i, t] = lon
                 buff_cos_heading[i, t] = np.cos(heading)
                 buff_sin_heading[i, t] = np.sin(heading)
-                buff_speed[i, t] = speed
-                buff_acc[i, t] = acceleration
+                buff_speed[i, t] = vs[j].speed
+                buff_acc[i, t] = vs[j].acceleration
                 buff_road_id[i, t] = vs[j].road_id
                 buff_lane_id[i, t] = vs[j].lane_id
                 buff_lane_index[i, t] = vs[j].lane_index
@@ -132,6 +130,11 @@ class TrajectoryPool(object):
         buff_lon = buff_lon[:, ::-1]
         buff_cos_heading = buff_cos_heading[:, ::-1]
         buff_sin_heading = buff_sin_heading[:, ::-1]
+        buff_speed = buff_speed[:, ::-1]
+        buff_acc = buff_acc[:, ::-1]
+        buff_road_id = buff_road_id[:, ::-1]
+        buff_lane_id = buff_lane_id[:, ::-1]
+        buff_lane_index = buff_lane_index[:, ::-1]
 
         # pad or crop to m x max_num_vehicles
         buff_lat = self._fixed_num_vehicles(buff_lat, max_num_vehicles)
