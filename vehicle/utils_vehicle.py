@@ -72,6 +72,7 @@ def traci_set_vehicle_state(model_output, buff_vid,
         rad2deg = 180.0 / np.pi
         angle_deg = np.arccos(pred_cos_heading[row_idx][0]) * rad2deg
         angle_deg = tc.INVALID_DOUBLE_VALUE if np.isnan(angle_deg) else angle_deg
+        angle_deg = tc.INVALID_DOUBLE_VALUE
         print('angle_deg', angle_deg)
         # lane_index = int(buff_lane_index[row_idx][0])
         # print('lane_index', lane_index)
