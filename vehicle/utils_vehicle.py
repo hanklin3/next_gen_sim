@@ -19,8 +19,8 @@ def to_vehicle(x, y, angle_deg, id, speed, road_id, lane_id, lane_index, acceler
     v.id = id
     # sumo: north, clockwise
     # NeuralNDE: east, counterclockwise
-    v.speed_heading = angle_deg #sumo -> NeuralNDE: (-angle_deg + 90 ) % 360
-    # v.speed_heading = (-angle_deg + 90 ) % 360 #NeuralNDE -> sumo: (-angle_deg + 90 ) % 360
+    v.speed_heading_deg = angle_deg #sumo -> NeuralNDE: (-angle_deg + 90 ) % 360
+    # v.speed_heading_deg = (-angle_deg + 90 ) % 360 #NeuralNDE -> sumo: (-angle_deg + 90 ) % 360
     v.speed = speed
     v.road_id = road_id
     v.lane_id = lane_id
@@ -40,7 +40,9 @@ def traci_get_vehicle_data():
     
     for car_id in car_list:
         x,y = traci.vehicle.getPosition(car_id)
-        angle_deg = traci.vehicle.getAngle(car_id)
+        # Returns the angle in degrees of the named vehicle within the last step.
+        deg2rad = np.pi/180.0
+        angle_deg = traci.vehicle.getAngle(car_id) * deg2rad
         speed = traci.vehicle.getSpeed(car_id)
         # speed = traci.vehicle.getLateralSpeed(car_id)
         acceleration = traci.vehicle.getAcceleration(car_id)
@@ -70,9 +72,10 @@ def traci_set_vehicle_state(model_output, buff_vid,
             continue
 
         rad2deg = 180.0 / np.pi
-        angle_deg = np.arccos(pred_cos_heading[row_idx][0]) * rad2deg
+        sin_heading = pred_sin_heading[row_idx][0]
+        cos_heading = pred_cos_heading[row_idx][0]
+        angle_deg = np.arctan2(sin_heading, cos_heading) * rad2deg
         angle_deg = tc.INVALID_DOUBLE_VALUE if np.isnan(angle_deg) else angle_deg
-        angle_deg = tc.INVALID_DOUBLE_VALUE
         print('angle_deg', angle_deg)
         # lane_index = int(buff_lane_index[row_idx][0])
         # print('lane_index', lane_index)

@@ -40,7 +40,7 @@ class TrajectoryPool(object):
 
             if v.id not in self.pool.keys():
                 self.pool[v.id] = {'vid': [str(v.id)], 'update': False, 'vehicle': [v], 'dt': [1], 't': [self.t_latest], 'missing_days': 0,
-                                   'x': [v.location.x], 'y': [v.location.y], 'heading': [v.speed_heading],
+                                   'x': [v.location.x], 'y': [v.location.y], 'heading': [v.speed_heading_deg],
                                    'speed': [v.speed],
                                    'region_position': [v.region_position if ROI_matching else None],
                                    'yielding_area': [v.yielding_area if ROI_matching else None], 'at_circle_lane': [v.at_circle_lane if ROI_matching else None]}
@@ -53,7 +53,7 @@ class TrajectoryPool(object):
                 self.pool[v.id]['vid'].append(str(v.id))
                 self.pool[v.id]['x'].append(v.location.x)
                 self.pool[v.id]['y'].append(v.location.y)
-                self.pool[v.id]['heading'].append(v.speed_heading)
+                self.pool[v.id]['heading'].append(v.speed_heading_deg)
                 self.pool[v.id]['region_position'].append(v.region_position if ROI_matching else None)
                 self.pool[v.id]['yielding_area'].append(v.yielding_area if ROI_matching else None)
                 self.pool[v.id]['at_circle_lane'].append(v.at_circle_lane if ROI_matching else None)
@@ -99,7 +99,7 @@ class TrajectoryPool(object):
             vs = traj['vehicle']
             for j in range(len(ts)):
                 lat, lon = vs[j].location.x, vs[j].location.y
-                heading = np.radians(vs[j].speed_heading)  # Convert degrees to radians
+                heading = np.radians(vs[j].speed_heading_deg)  # Convert degrees to radians
                 if lat is None:
                     continue
                 t = self.t_latest - ts[j]

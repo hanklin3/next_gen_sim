@@ -82,7 +82,7 @@ class Vehicle(object):
         self.category = None
         self.confidence = None
         self.speed = None
-        self.speed_heading = None
+        self.speed_heading_deg = None
         self.predicted_future = None
         self.poly_box = None  # The rectangle of the vehicle using shapely.Polygon
         self.safe_poly_box = None  # The rectangle of the vehicle (with a safety buffer) using shapely.Polygon
@@ -106,7 +106,7 @@ class Vehicle(object):
             length, width = self.size.length, self.size.width
         else:
             length, width = 3.6, 1.8
-        realworld_4_vertices = get_box_pts_from_center_heading(length=length, width=width, xc=self.location.x, yc=self.location.y, heading=self.speed_heading)
+        realworld_4_vertices = get_box_pts_from_center_heading(length=length, width=width, xc=self.location.x, yc=self.location.y, heading=self.speed_heading_deg)
         new_poly_box = Polygon(realworld_4_vertices)
         self.poly_box = new_poly_box
         self.realworld_4_vertices = np.array(realworld_4_vertices)
@@ -117,5 +117,5 @@ class Vehicle(object):
         else:
             length, width = 3.8, 2.0
         # length, width = 3.8, 2.0
-        new_safe_poly_box = Polygon(get_box_pts_from_center_heading(length=length, width=width, xc=self.location.x, yc=self.location.y, heading=self.speed_heading))
+        new_safe_poly_box = Polygon(get_box_pts_from_center_heading(length=length, width=width, xc=self.location.x, yc=self.location.y, heading=self.speed_heading_deg))
         self.safe_poly_box = new_safe_poly_box
