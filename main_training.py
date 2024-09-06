@@ -7,7 +7,7 @@ import sys
 import yaml
 
 import logging
-logging.basicConfig(level=logging.WARNING)
+logging.basicConfig(level=logging.ERROR)
 import traci
 
 from utils import set_sumo
@@ -43,10 +43,7 @@ if __name__ == '__main__':
             print(exception)
             
     sumo_cmd = ['sumo', '-c', 'data/sumo/ring/circles.sumocfg', '--step-length', "0.4"]
-    sumo_cmd = set_sumo(configs['gui'], 
-                    configs['sumocfg_file_name'], configs['max_steps'], configs['sim_resol'])
-    configs["sumo_cmd"] = sumo_cmd
-    print('main_training.py sumo_cmd', configs["sumo_cmd"])
+    print('Sumo configs found: ', len(configs['sumocfg_files']), configs['sumocfg_files'])
                 
     # Checkpoints and training process visualizations save paths
     experiment_name = args.experiment_name

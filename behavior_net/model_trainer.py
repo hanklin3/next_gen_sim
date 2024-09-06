@@ -31,9 +31,9 @@ class Trainer(object):
     def __init__(self, configs, dataloaders):
 
         self.dataloaders = dataloaders
-        self.sumo_cmd = configs["sumo_cmd"]
+        # self.sumo_cmd = configs["sumo_cmd"]
         self.traci_label = "sumo_training"
-        print("model_trainer.py sumo_cmd: ", self.sumo_cmd)
+        # print("model_trainer.py sumo_cmd: ", self.sumo_cmd)
 
         # input and output dimension
         self.input_dim = 4 * configs["history_length"]  # x, y, cos_heading, sin_heading
@@ -437,6 +437,7 @@ class Trainer(object):
 
         idx = self.batch['idx'].to(device) #[32]
         veh_ids = self.batch['vehicle_ids'].to(device)
+        sumo_cmd = self.batch['sumo_cmd']
 
         batch_size = len(self.x)
 
@@ -446,6 +447,7 @@ class Trainer(object):
 
         for i_batch in range(batch_size):
             outputs = self._forward_pass_sim_one_batch(self.x[i_batch], idx[i_batch], veh_ids[i_batch], 
+                                                       sumo_cmd[i_batch].split()
                                                     #    buff_speed_dl=batch['buff_speed'][i_batch].to(device),
                                                     #    buff_lat_dl=batch['buff_lat'][i_batch].to(device),
                                                     #    speeds_list_dl=batch['speed'][i_batch]
@@ -458,7 +460,7 @@ class Trainer(object):
         self.G_pred_mean.append(mean_pos_cos_sin_heading)
         self.G_pred_std.append(std_pos)
 
-    def _forward_pass_sim_one_batch(self, one_input, idx_history, veh_ids, debug=True, 
+    def _forward_pass_sim_one_batch(self, one_input, idx_history, veh_ids, sumo_cmd, debug=True, 
                                     buff_speed_dl=None, buff_lat_dl=None, speeds_list_dl=None):
     
         outputs = {}
@@ -472,7 +474,9 @@ class Trainer(object):
         pred_cos_heading_loop = torch.zeros((self.m_tokens, self.pred_length)).to(device)
         pred_sin_heading_loop = torch.zeros((self.m_tokens, self.pred_length)).to(device)
 
-        traci.start(self.sumo_cmd, label=self.traci_label)
+        print('Training sumo_cmd', sumo_cmd)
+        traci.start(sumo_cmd, label=self.traci_label)
+        
         # traci.start(self.sumo_cmd)
         # time.sleep(1)
         step = 0

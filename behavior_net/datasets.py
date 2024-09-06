@@ -7,7 +7,8 @@ import time
 import torch
 
 import logging
-logging.basicConfig(level=logging.WARNING)
+logging.basicConfig(level=logging.ERROR)
+from utils import set_sumo
 import traci
 
 from torch.utils.data import Dataset, DataLoader
@@ -23,26 +24,33 @@ class MTLTrajectoryPredictionDataset(Dataset):
     Pytorch Dataset Loader...
     """
 
-    def __init__(self, history_length, pred_length, max_num_vehicles, is_train, dataset='ring',
-                 sumo_cmd = ['sumo', '-c', 'data/sumo/ring/circles.sumocfg'], model_output = 'position'):
-        self.history_length = history_length
-        self.pred_length = pred_length
-        self.max_num_vehicles = max_num_vehicles
+    def __init__(self, configs, is_train):
+        self.history_length = configs["history_length"]
+        self.pred_length = configs["pred_length"]
+        self.max_num_vehicles = configs["max_num_vehicles"]
         self.is_train = is_train
-        self.dataset = dataset
-        self.max_length = 1000
-        self.sumo_cmd = sumo_cmd
+        self.dataset = configs["dataset"]
+        self.max_length = configs['max_steps']
+        self.sumocfg_files = configs['sumocfg_files']
+        assert self.sumocfg_files is not None
+
+        self.is_gui = configs['gui']
+        self.sim_resol = configs['sim_resol']
+
+        sumocfg_file = self.sumocfg_files[0]
+        print('self.sumocfg_files', self.sumocfg_files)
+        sumo_cmd = set_sumo(self.is_gui, sumocfg_file, self.max_length, self.sim_resol)
+        print('Ex: main_training.py sumo_cmd', sumo_cmd)
+
         self.sumo_running_labels = []
 
-        self.model_output = model_output  # position or speed
+        self.model_output = configs['model_output']  # position or speed
         assert 'position' in self.model_output or 'speed' in self.model_output
          
         print('dataset.py sumo_cmd', self.model_output)
 
-
         if self.dataset == 'rounD' or self.dataset == 'AA_rdbt' or self.dataset == 'ring':
             split = 'train' if is_train else 'val'
-            # traci.start(sumo_cmd)
         else:
             raise NotImplementedError( 'Wrong dataset name %s (choose one from [AA_rdbt, rounD,...])' % self.dataset)
 
@@ -88,6 +96,10 @@ class MTLTrajectoryPredictionDataset(Dataset):
         idx = 0,  then current at 4, ends at 7
         
         """
+        config_index = np.random.randint(low=0, high=len(self.sumocfg_files))
+        sumocfg_file = self.sumocfg_files[config_index]
+        sumo_cmd = set_sumo(self.is_gui, sumocfg_file, self.max_length, self.sim_resol)
+
         # Give label to traci so it can run multiple instances in case dataloader is multi-threaded
         thread_id = np.random.randint(low=0, high=self.max_length)
         while thread_id in self.sumo_running_labels:
@@ -96,7 +108,7 @@ class MTLTrajectoryPredictionDataset(Dataset):
 
         sumo_label = f'sim_dataloader_{thread_id}'
         # print('Starting sumo id', sumo_label)
-        traci.start(self.sumo_cmd, label=sumo_label)
+        traci.start(sumo_cmd, label=sumo_label)
         # time.sleep(1)
         #######
 
@@ -143,6 +155,7 @@ class MTLTrajectoryPredictionDataset(Dataset):
         idx = torch.tensor(idx, dtype=torch.float32)
         buff_vid = torch.tensor(buff_vid, dtype=torch.float32)
         data = {'input': input_matrix, 'gt': gt_matrix, 'idx': idx, 'vehicle_ids': buff_vid,
+                'sumo_cmd': ' '.join(sumo_cmd)
                 # 'buff_speed': buff_speed, 'buff_lat': buff_lat, 'speed': speeds_list
                 }
 
@@ -217,12 +230,8 @@ class MTLTrajectoryPredictionDataset(Dataset):
 def get_loaders(configs):
 
     if configs["dataset"] == 'AA_rdbt' or configs["dataset"] == 'rounD' or configs["dataset"] == 'ring':
-        training_set = MTLTrajectoryPredictionDataset(history_length=configs["history_length"], pred_length=configs["pred_length"],
-                                                      max_num_vehicles=configs["max_num_vehicles"], is_train=True, dataset=configs["dataset"], 
-                                                      sumo_cmd=configs["sumo_cmd"], model_output=configs['model_output'])
-        val_set = MTLTrajectoryPredictionDataset(history_length=configs["history_length"], pred_length=configs["pred_length"],
-                                                 max_num_vehicles=configs["max_num_vehicles"], is_train=False, dataset=configs["dataset"], 
-                                                 sumo_cmd=configs["sumo_cmd"], model_output=configs['model_output'])
+        training_set = MTLTrajectoryPredictionDataset(configs, is_train=True)
+        val_set = MTLTrajectoryPredictionDataset(configs, is_train=False)
     else:
         raise NotImplementedError(
             'Wrong dataset name %s (choose one from [AA_rdbt, rounD,...])'
