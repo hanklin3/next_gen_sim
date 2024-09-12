@@ -9,7 +9,15 @@ import yaml
 
 import matplotlib.pyplot as plt
 # import libsumo as traci
-import traci
+
+if 'LIBSUMO' in os.environ:
+    print('Using LIBSUMO')
+    sys.path.append(os.path.join(os.environ['SUMO_HOME'], 'tools'))
+    import libsumo as traci
+else:
+    print('Using traci')
+    import traci
+# import traci
 
 from utils import set_sumo
 # from behavior_net import datasets
@@ -110,7 +118,7 @@ model_output = configs['model_output']
 dataf = []
 df_predicted = []
 
-step_max = 1000
+step_max = configs['max_steps']
 step = 0
 while step < step_max:
     print(step)

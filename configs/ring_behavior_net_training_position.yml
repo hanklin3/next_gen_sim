@@ -29,6 +29,8 @@ sim_resol: 0.4  # simulation resolution. unit: s
 gui: False
 sumocfg_files:
   - "./data/sumo/ring/circles.sumocfg"
-  - "./data/sumo/ring_18cars_0.7acc_0.7dec/circles.sumocfg"
-  - "./data/sumo/ring_18cars_80maxSpeed/circles.sumocfg"
-max_steps: 100
+  - "./data/sumo/ring_24cars/circles.sumocfg"
+  - "./data/sumo/ring_18cars_0.1acc_1.5dec/circles.sumocfg"
+  # - "./data/sumo/ring_18cars_0.7acc_0.7dec/circles.sumocfg"
+  # - "./data/sumo/ring_18cars_80maxSpeed/circles.sumocfg"
+max_steps: 1000

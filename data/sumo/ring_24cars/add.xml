@@ -18,13 +18,19 @@
   <vehicle id="6" type="human" route="route_right" depart="0" departPos="free" departLane="0" departSpeed="0"/>
   <vehicle id="7" type="human" route="route_right" depart="0" departPos="free" departLane="0" departSpeed="0"/>
   <vehicle id="8" type="human" route="route_right" depart="0" departPos="free" departLane="0" departSpeed="0"/>
-  <vehicle id="9" type="human" route="route_left" depart="0" departPos="free" departLane="0" departSpeed="0"/>
-  <vehicle id="10" type="human" route="route_left" depart="0" departPos="free" departLane="0" departSpeed="0"/>
-  <vehicle id="11" type="human" route="route_left" depart="0" departPos="free" departLane="0" departSpeed="0"/>
+  <vehicle id="9" type="human" route="route_right" depart="0" departPos="free" departLane="0" departSpeed="0"/>
+  <vehicle id="10" type="human" route="route_right" depart="0" departPos="free" departLane="0" departSpeed="0"/>
+  <vehicle id="11" type="human" route="route_right" depart="0" departPos="free" departLane="0" departSpeed="0"/>
   <vehicle id="12" type="human" route="route_left" depart="0" departPos="free" departLane="0" departSpeed="0"/>
   <vehicle id="13" type="human" route="route_left" depart="0" departPos="free" departLane="0" departSpeed="0"/>
   <vehicle id="14" type="human" route="route_left" depart="0" departPos="free" departLane="0" departSpeed="0"/>
   <vehicle id="15" type="human" route="route_left" depart="0" departPos="free" departLane="0" departSpeed="0"/>
   <vehicle id="16" type="human" route="route_left" depart="0" departPos="free" departLane="0" departSpeed="0"/>
   <vehicle id="17" type="human" route="route_left" depart="0" departPos="free" departLane="0" departSpeed="0"/>
+  <vehicle id="18" type="human" route="route_left" depart="0" departPos="free" departLane="0" departSpeed="0"/>
+  <vehicle id="19" type="human" route="route_left" depart="0" departPos="free" departLane="0" departSpeed="0"/>
+  <vehicle id="20" type="human" route="route_left" depart="0" departPos="free" departLane="0" departSpeed="0"/>
+  <vehicle id="21" type="human" route="route_left" depart="0" departPos="free" departLane="0" departSpeed="0"/>
+  <vehicle id="22" type="human" route="route_left" depart="0" departPos="free" departLane="0" departSpeed="0"/>
+  <vehicle id="23" type="human" route="route_left" depart="0" departPos="free" departLane="0" departSpeed="0"/>
 </additional>

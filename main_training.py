@@ -8,7 +8,13 @@ import yaml
 
 import logging
 logging.basicConfig(level=logging.ERROR)
-import traci
+if 'LIBSUMO' in os.environ:
+    print('Using LIBSUMO')
+    sys.path.append(os.path.join(os.environ['SUMO_HOME'], 'tools'))
+    import libsumo as traci
+else:
+    print('Using traci')
+    import traci
 
 from utils import set_sumo
 # from behavior_net import datasets

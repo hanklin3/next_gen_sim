@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <additional xmlns:xsi="F/resources/xml/XMLSchema-instance" xsi:noNamespaceSchemaLocation="./resources/xml/additional_file.xsd">
-  <vType id="human" accel="1" decel="1.5" tau="1.0" minGap="2" maxSpeed="30" speedFactor="1.0" speedDev="0.1" impatience="0.5" delta="4" carFollowModel="IDM" sigma="0.2" laneChangeModel="LC2013" lcStrategic="1.0" lcCooperative="1.0" lcSpeedGain="1.0" lcKeepRight="1.0"/>
-  <vType id="rl" accel="1" decel="1.5" tau="1.0" minGap="2" maxSpeed="30" speedFactor="1.0" speedDev="0.1" impatience="0.5" delta="4" carFollowModel="IDM" sigma="0" laneChangeModel="LC2013" lcStrategic="1.0" lcCooperative="1.0" lcSpeedGain="1.0" lcKeepRight="1.0"/>
+  <vType id="human" accel="0.1" decel="1.5" tau="1.0" minGap="2" maxSpeed="30" speedFactor="1.0" speedDev="0.1" impatience="0.5" delta="4" carFollowModel="IDM" sigma="0.2" laneChangeModel="LC2013" lcStrategic="1.0" lcCooperative="1.0" lcSpeedGain="1.0" lcKeepRight="1.0"/>
+  <vType id="rl" accel="0.1" decel="1.5" tau="1.0" minGap="2" maxSpeed="30" speedFactor="1.0" speedDev="0.1" impatience="0.5" delta="4" carFollowModel="IDM" sigma="0" laneChangeModel="LC2013" lcStrategic="1.0" lcCooperative="1.0" lcSpeedGain="1.0" lcKeepRight="1.0"/>
   <route id="route_right" edges="right left right"/>
   <route id="route_left" edges="left right left"/>
   <rerouter id="reroute" edges="right">

@@ -22,6 +22,9 @@ experiment = 'ring_position_close_loop_8-20'   # pos_rmse 0.0, minADE = 0.0
 experiment = 'ring_position_fixed_08-09-24__dxdy'  # pos_rmse 41.437289445872075, minADE 0.10204540416577479
 # experiment = 'ring_speed_close_firstNoMatch_08-22-24'
 # experiment = 'ring_speed_open_8-20'
+experiment = 'ring_position_close_multi_configs_9-05__1' # pos_rmse 0.0 minADE 0.0
+experiment = 'ring_position_close_multi_configs_9-05__2' # pos_rmse 0.0 minADE 0.0
+experiment = 'ring_position_close_multi_configs_9-05__3' # pos_rmse 0.0 minADE 0.0
 
 save_path = f'./results/inference/behavior_net/{experiment}'
 

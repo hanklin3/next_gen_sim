@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- generated on 2024-09-05 19:00:29 by Eclipse SUMO netconvert Version UNKNOWN
+<!-- generated on 2024-09-11 22:57:14 by Eclipse SUMO netconvert Version UNKNOWN
 <configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/netconvertConfiguration.xsd">
 
     <input>
-        <node-files value="tmp/jnanpljw/sumo/nod.xml"/>
-        <edge-files value="tmp/jnanpljw/sumo/edg.xml"/>
-        <connection-files value="tmp/jnanpljw/sumo/con.xml"/>
+        <node-files value="tmp/xkljkphw/sumo/nod.xml"/>
+        <edge-files value="tmp/xkljkphw/sumo/edg.xml"/>
+        <connection-files value="tmp/xkljkphw/sumo/con.xml"/>
     </input>
 
     <output>
-        <output-file value="tmp/jnanpljw/sumo/net.xml"/>
+        <output-file value="tmp/xkljkphw/sumo/net.xml"/>
     </output>
 
     <junctions>

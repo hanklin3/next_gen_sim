@@ -111,20 +111,18 @@ class TrajectoryPool(object):
                 buff_sin_heading[i, t] = np.sin(heading)
                 buff_speed[i, t] = vs[j].speed
                 buff_acc[i, t] = vs[j].acceleration
+                buff_vid[i, t] = vs[j].id
                 buff_road_id[i, t] = vs[j].road_id
                 buff_lane_id[i, t] = vs[j].lane_id
                 buff_lane_index[i, t] = vs[j].lane_index
             i += 1
 
-        # fill-in id buffer
-        i = 0
-        for _, traj in self.pool.items():
-            vs = traj['vehicle']
-            buff_vid[i, :] = vs[-1].id
-            # buff_road_id[i, :] = vs[-1].road_id
-            # buff_lane_id[i, :] = vs[-1].lane_id
-            # buff_lane_index[i, :] = vs[-1].lane_index
-            i += 1
+        # # fill-in id buffer
+        # i = 0
+        # for _, traj in self.pool.items():
+        #     vs = traj['vehicle']
+        #     buff_vid[i, :] = vs[-1].id
+        #     i += 1
 
         buff_lat = buff_lat[:, ::-1]
         buff_lon = buff_lon[:, ::-1]
@@ -132,6 +130,7 @@ class TrajectoryPool(object):
         buff_sin_heading = buff_sin_heading[:, ::-1]
         buff_speed = buff_speed[:, ::-1]
         buff_acc = buff_acc[:, ::-1]
+        buff_vid = buff_vid[:, ::-1]
         buff_road_id = buff_road_id[:, ::-1]
         buff_lane_id = buff_lane_id[:, ::-1]
         buff_lane_index = buff_lane_index[:, ::-1]

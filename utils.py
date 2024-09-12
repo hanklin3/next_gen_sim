@@ -104,8 +104,11 @@ def set_sumo(gui, sumocfg_file_path, max_steps, step_length=1.0):
     else:
         sumoBinary = checkBinary('sumo-gui')
     # setting the cmd command to run sumo at simulation time
+    # sumo_cmd = [sumoBinary, "-c", sumocfg_file_path,
+    #             "--no-step-log", "true", "--waiting-time-memory", str(max_steps), "--step-length", str(step_length)]
     sumo_cmd = [sumoBinary, "-c", sumocfg_file_path,
-                "--no-step-log", "true", "--waiting-time-memory", str(max_steps), "--step-length", str(step_length)]
+            "--no-step-log", "true", "--step-length", str(step_length)]
+    # sumo_cmd = [sumoBinary, "-c", sumocfg_file_path]
 
     return sumo_cmd
 

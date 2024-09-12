@@ -20,6 +20,8 @@ experiment = 'ring_speed_close_firstNoMatch_08-22-24'
 experiment = 'ring_position_test'
 experiment = 'ring_position_close_loop_8-20'
 experiment = 'ring_position_fixed_08-09-24__dxdy'
+experiment = 'ring_speed_close_8-30'
+experiment = 'ring_position_close_multi_configs_9-05__3'
 # experiment = 'ring_speed_close_firstNoMatch_08-22-24'
 # experiment = 'ring_speed_open_8-20'
 

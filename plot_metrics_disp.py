@@ -16,6 +16,7 @@ experiment = 'ring_speed_acc'
 # experiment = 'ring_speed_acc__setAcceleration'
 experiment = 'ring_xy_out2'
 experiment = 'ring_speed'
+experiment = 'ring_position_close_multi_configs_9-05__1'
 
 # ### model position vs sumo position (model xy->speed->sumo xy)
 # path = f'./results/inference/behavior_net/{experiment}/df_traj_1000.csv'
