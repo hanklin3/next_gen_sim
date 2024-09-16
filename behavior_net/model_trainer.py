@@ -1,11 +1,20 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import os
+import sys
 import json
 import random
 import time
-# import libsumo as traci
-import traci
+
+try:
+    # sys.path.append(os.path.join(os.environ['W'], 'sumo-1.12.0', 'tools'))
+    sys.path.append(os.path.join(os.environ['SUMO_HOME'], 'tools'))
+    import libsumo as traci
+    print('Using libsumo')
+except:
+    import traci
+    print('Traci')
+    assert False
 
 import torch
 import torch.optim as optim

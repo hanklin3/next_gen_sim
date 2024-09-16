@@ -1,7 +1,17 @@
+import os
 import numpy as np
+import sys
 from trajectory_pool import TrajectoryPool
 from vehicle import Vehicle
-import traci
+try:
+    # sys.path.append(os.path.join(os.environ['W'], 'sumo-1.12.0', 'tools'))
+    sys.path.append(os.path.join(os.environ['SUMO_HOME'], 'tools'))
+    import libsumo as traci
+    print('Using libsumo')
+except:
+    import traci
+    print('Traci')
+    assert False
 import traci.constants as tc
 
 def time_buff_to_traj_pool(TIME_BUFF):

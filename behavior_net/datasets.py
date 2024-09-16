@@ -1,6 +1,7 @@
 import numpy as np
 import pickle
 import os
+import sys
 import glob
 import random
 import time
@@ -9,7 +10,15 @@ import torch
 import logging
 logging.basicConfig(level=logging.ERROR)
 from utils import set_sumo
-import traci
+
+try:
+    # sys.path.append(os.path.join(os.environ['W'], 'sumo-1.12.0', 'tools'))
+    sys.path.append(os.path.join(os.environ['SUMO_HOME'], 'tools'))
+    import libsumo as traci
+    print('Using libsumo')
+except:
+    import traci
+    print('Traci')
 
 from torch.utils.data import Dataset, DataLoader
 from trajectory_pool import TrajectoryPool

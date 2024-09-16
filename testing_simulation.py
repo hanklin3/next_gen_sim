@@ -1,8 +1,19 @@
-import traci
 import numpy as np
 import timeit
 import torch
 from torch.autograd import Variable
+
+import os
+import sys
+
+try:
+    # sys.path.append(os.path.join(os.environ['W'], 'sumo-1.12.0', 'tools'))
+    sys.path.append(os.path.join(os.environ['SUMO_HOME'], 'tools'))
+    import libsumo as traci
+    print('Using libsumo')
+except:
+    import traci
+    print('Traci')
 
 # phase codes based on environment.net.xml
 PHASE_NS_GREEN = 0  # action 0 code 00

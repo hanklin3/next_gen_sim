@@ -8,7 +8,6 @@ import yaml
 
 import logging
 logging.basicConfig(level=logging.WARNING)
-import traci
 
 from utils import set_sumo
 # from behavior_net import datasets
