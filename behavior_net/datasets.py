@@ -117,7 +117,8 @@ class MTLTrajectoryPredictionDataset(Dataset):
 
         sumo_label = f'sim_dataloader_{thread_id}'
         # print('Starting sumo id', sumo_label)
-        traci.start(sumo_cmd, label=sumo_label)
+        # traci.start(sumo_cmd, label=sumo_label)
+        traci.start(sumo_cmd)
         # time.sleep(1)
         #######
 

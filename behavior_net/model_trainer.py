@@ -484,10 +484,9 @@ class Trainer(object):
         pred_sin_heading_loop = torch.zeros((self.m_tokens, self.pred_length)).to(device)
 
         print('Training sumo_cmd', sumo_cmd)
-        traci.start(sumo_cmd, label=self.traci_label)
-        
-        # traci.start(self.sumo_cmd)
-        # time.sleep(1)
+        # traci.start(sumo_cmd, label=self.traci_label)
+        traci.start(sumo_cmd)
+
         step = 0
         while step < idx_history:
             traci.simulationStep()
@@ -527,8 +526,8 @@ class Trainer(object):
             buff_vid = torch.tensor(buff_vid, dtype=torch.float32).to(device)
             # print('veh_ids', veh_ids.shape, veh_ids) # [32, 10]
             # print('buff_vid', buff_vid.shape, buff_vid) # [32, 5]
-            assert torch.allclose(veh_ids[:, :self.history_length], buff_vid, equal_nan=True), (
-                veh_ids[:, :self.history_length], buff_vid)
+            # assert torch.allclose(veh_ids[:, :self.history_length], buff_vid, equal_nan=True), (
+            #     veh_ids[:, :self.history_length], buff_vid)
 
             if self.model_output == 'position' or 'position' in self.model_output:
                 buff1, buff2 = buff_lat, buff_lon

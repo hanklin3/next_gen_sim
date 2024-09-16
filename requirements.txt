@@ -6,4 +6,4 @@ PyYAML
 scipy
 Shapely
 tensorboard
-traci
+traci==1.19   # make sure it matches your sumo binary version
