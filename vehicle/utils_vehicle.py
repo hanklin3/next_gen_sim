@@ -99,8 +99,8 @@ def traci_set_vehicle_state(model_output, buff_vid,
             # print('speed', speed)
             
             # assert speed[0] > 0, (speed, pred_speed[row_idx,:], pred_speed[row_idx,:])
-            print('position_dxdy', str(int(vid)), speed[0])
-            traci.vehicle.setSpeed(str(int(vid)), speed[0])
+            print('position_dxdy', str(int(vid)), float(speed[0]))
+            traci.vehicle.setSpeed(str(int(vid)), float(speed[0]))
             # traci.setPreviousSpeed(str(int(vid)), speed[0])
         elif model_output == 'position_xy':
             # If keepRoute is set to 1, the closest position

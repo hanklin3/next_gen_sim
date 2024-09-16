@@ -9,13 +9,12 @@ import yaml
 
 import matplotlib.pyplot as plt
 
-use_libsumo = True
-if use_libsumo:
+try:
     # sys.path.append(os.path.join(os.environ['W'], 'sumo-1.12.0', 'tools'))
     sys.path.append(os.path.join(os.environ['SUMO_HOME'], 'tools'))
     import libsumo as traci
     print('Using libsumo')
-else:
+except:
     import traci
     print('Traci')
     assert False
