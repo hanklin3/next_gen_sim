@@ -84,7 +84,7 @@ class Predictor(object):
         input_matrix = np.concatenate([buff_lat, buff_lon, buff_cos_heading, buff_sin_heading], axis=1)
         input_matrix = torch.tensor(input_matrix, dtype=torch.float32)
 
-        print('input_matrix', input_matrix.shape)
+        # print('input_matrix', input_matrix.shape) # [32, 20]
         
 
         # # sample an input state from testing data (e.g. 0th state)
@@ -93,7 +93,7 @@ class Predictor(object):
 
         input_matrix[torch.isnan(input_matrix)] = 0.0
 
-        print('after unsqueeze', input_matrix.shape)
+        # print('after unsqueeze', input_matrix.shape) # [1, 32, 20]
 
 
         # run prediction

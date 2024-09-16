@@ -8,16 +8,17 @@ import sys
 import yaml
 
 import matplotlib.pyplot as plt
-# import libsumo as traci
 
-if 'LIBSUMO' in os.environ:
-    print('Using LIBSUMO')
+use_libsumo = True
+if use_libsumo:
+    # sys.path.append(os.path.join(os.environ['W'], 'sumo-1.12.0', 'tools'))
     sys.path.append(os.path.join(os.environ['SUMO_HOME'], 'tools'))
     import libsumo as traci
+    print('Using libsumo')
 else:
-    print('Using traci')
     import traci
-# import traci
+    print('Traci')
+    assert False
 
 from utils import set_sumo
 # from behavior_net import datasets
