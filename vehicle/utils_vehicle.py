@@ -3,15 +3,16 @@ import numpy as np
 import sys
 from trajectory_pool import TrajectoryPool
 from vehicle import Vehicle
-try:
+
+if os.environ['LIBSUMO'] == "1":
     # sys.path.append(os.path.join(os.environ['W'], 'sumo-1.12.0', 'tools'))
     sys.path.append(os.path.join(os.environ['SUMO_HOME'], 'tools'))
     import libsumo as traci
     print('Using libsumo')
-except:
+else:
     import traci
     print('Traci')
-    assert False
+    
 import traci.constants as tc
 
 def time_buff_to_traj_pool(TIME_BUFF):
@@ -82,13 +83,17 @@ def traci_set_vehicle_state(model_output, buff_vid,
             continue
 
         rad2deg = 180.0 / np.pi
-        sin_heading = pred_sin_heading[row_idx][0]
-        cos_heading = pred_cos_heading[row_idx][0]
+        next_idx = 0
+        sin_heading = pred_sin_heading[row_idx][next_idx]
+        cos_heading = pred_cos_heading[row_idx][next_idx]
         angle_deg = np.arctan2(sin_heading, cos_heading) * rad2deg
         angle_deg = tc.INVALID_DOUBLE_VALUE if np.isnan(angle_deg) else angle_deg
         print('angle_deg', angle_deg)
         # lane_index = int(buff_lane_index[row_idx][0])
         # print('lane_index', lane_index)
+
+        speedMode = 0 # no check
+        traci.vehicle.setSpeedMode(str(int(vid)), speedMode)
         
         if model_output == 'position_dxdy':
             dx = np.diff(pred_lat[row_idx,:])
@@ -100,6 +105,7 @@ def traci_set_vehicle_state(model_output, buff_vid,
             
             # assert speed[0] > 0, (speed, pred_speed[row_idx,:], pred_speed[row_idx,:])
             print('position_dxdy', str(int(vid)), float(speed[0]))
+
             traci.vehicle.setSpeed(str(int(vid)), float(speed[0]))
             # traci.setPreviousSpeed(str(int(vid)), speed[0])
         elif model_output == 'position_xy':
@@ -112,18 +118,18 @@ def traci_set_vehicle_state(model_output, buff_vid,
             traci.vehicle.moveToXY(
                 str(int(vid)),
                 edgeID="",
-                # laneIndex=-1, #lane_index,
-                lane=-1,
-                x=pred_lat[row_idx,0], #front_bumper_xy_sumo[0],
-                y=pred_lon[row_idx,0], #front_bumper_xy_sumo[1],
+                laneIndex=-1, #lane_index,
+                # lane=-1,
+                x=float(pred_lat[row_idx,next_idx]), #front_bumper_xy_sumo[0],
+                y=float(pred_lon[row_idx,next_idx]), #front_bumper_xy_sumo[1],
                 # angle=tc.INVALID_DOUBLE_VALUE, #(-angle_deg + 90 ) % 360,
-                angle=angle_deg,
+                angle=float(angle_deg),
                 keepRoute=keeproute,
             )
         elif model_output == 'speed':
             ####################Speed
             # print('pred_speed', pred_speed[row_idx,0])
-            traci.vehicle.setSpeed(str(int(vid)), pred_speed[row_idx,0])
+            traci.vehicle.setSpeed(str(int(vid)), float(pred_speed[row_idx,0]))
         elif model_output == 'no_set':
             pass
         elif model_output == 'acceleration':

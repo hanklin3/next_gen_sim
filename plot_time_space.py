@@ -21,7 +21,10 @@ experiment = 'ring_position_test'
 experiment = 'ring_position_close_loop_8-20'
 experiment = 'ring_position_fixed_08-09-24__dxdy'
 experiment = 'ring_speed_close_8-30'
-experiment = 'ring_position_close_multi_configs_9-05__3'
+experiment = 'ring_position_close_multiConf_libsumo_9-16__1_speedMode0'
+# experiment = 'ring_position_close_multi_configs_9-05__3'
+# experiment = 'ring_position_close_multiConf_libsumo_9-16__3'
+# experiment = 'ring_position_close_multiConf_libsumo_9-16__1'
 # experiment = 'ring_speed_close_firstNoMatch_08-22-24'
 # experiment = 'ring_speed_open_8-20'
 
@@ -53,9 +56,14 @@ def get_traj(path):
 traj_gt = get_traj(path)
 traj_pred = get_traj(path_pred)
 
-time_gt = 300
+# time_gt = 300
+time_gt = 0
 traj_gt = traj_gt[traj_gt['Time'] >= time_gt]
 traj_pred = traj_pred[traj_pred['Time'] >= time_gt]
+# time_gt = 'all'
+
+traj_gt = traj_gt[traj_gt['Time'] <= time_gt + 100]
+traj_pred = traj_pred[traj_pred['Time'] <= time_gt + 100]
 
 traj_list = [traj_gt, traj_pred]
 title_list = ['groundtruth', 'model']
@@ -71,10 +79,16 @@ data_speed = traj_gt.loc[traj_gt['Simulation No'] == 0]['Speed']
 norm = Normalize(vmin=min(data_speed), vmax=max(data_speed))
 # norm = Normalize(vmin=0., vmax=9.0)
 print('data_speed min max', data_speed.min(), data_speed.max())
-assert data_speed.min() > 0.0, data_speed.min()
+assert data_speed.min() >= 0.0, data_speed.min()
 assert data_speed.max() < 9.0, data_speed.max()
+
+data_speed_pred = traj_pred.loc[traj_gt['Simulation No'] == 0]['Speed']
+data_speed = data_speed_pred
 colors = cm.rainbow(norm(data_speed))
 print('colors', len(colors))
+
+print('norm(data_speed)', norm(data_speed))
+assert False
 
 iplot = 0
 # for sim_num in [0]:

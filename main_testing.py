@@ -5,19 +5,19 @@ import os
 import pandas as pd
 import shutil
 import sys
+import time
 import yaml
 
 import matplotlib.pyplot as plt
 
-try:
+if os.environ['LIBSUMO'] == "1":
     # sys.path.append(os.path.join(os.environ['W'], 'sumo-1.12.0', 'tools'))
     sys.path.append(os.path.join(os.environ['SUMO_HOME'], 'tools'))
     import libsumo as traci
     print('Using libsumo')
-except:
+else:
     import traci
     print('Traci')
-    assert False
 
 from utils import set_sumo
 # from behavior_net import datasets
@@ -118,6 +118,7 @@ model_output = configs['model_output']
 dataf = []
 df_predicted = []
 
+time_start = time.time()
 step_max = configs['max_steps']
 step = 0
 while step < step_max:
@@ -183,6 +184,11 @@ while step < step_max:
 
 traci.close()
 
+time_end = time.time()
+print(f"Inference time: {time_end-time_start}s")
+
+#libsumo: Inference time: 8.278995275497437s 
+#traci: Inference time: 20.589370489120483s
 ################################################################
 # %%
 

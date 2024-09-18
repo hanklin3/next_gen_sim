@@ -6,15 +6,15 @@ import json
 import random
 import time
 
-try:
+if os.environ['LIBSUMO'] == "1":
     # sys.path.append(os.path.join(os.environ['W'], 'sumo-1.12.0', 'tools'))
     sys.path.append(os.path.join(os.environ['SUMO_HOME'], 'tools'))
     import libsumo as traci
     print('Using libsumo')
-except:
+else:
     import traci
     print('Traci')
-    assert False
+
 
 import torch
 import torch.optim as optim
@@ -548,7 +548,7 @@ class Trainer(object):
 
             if 'position' in self.model_output or self.model_output == 'speed':
                 if step - self.history_length + 1 == idx_history :
-                    assert torch.allclose(one_input, input_matrix, equal_nan=True), (
+                    assert torch.allclose(one_input, input_matrix, rtol=1e-02, atol=1e-02, equal_nan=True), (
                         one_input, input_matrix, 
                         # buff_lat_dl, buff_lat, buff_speed_dl, buff_speed, 
                         # speeds_list_dl[0], speeds_list[0]

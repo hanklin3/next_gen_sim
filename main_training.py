@@ -8,15 +8,14 @@ import yaml
 
 import logging
 logging.basicConfig(level=logging.ERROR)
-try:
+if os.environ['LIBSUMO'] == "1":
     # sys.path.append(os.path.join(os.environ['W'], 'sumo-1.12.0', 'tools'))
     sys.path.append(os.path.join(os.environ['SUMO_HOME'], 'tools'))
     import libsumo as traci
     print('Using libsumo')
-except:
+else:
     import traci
     print('Traci')
-    assert False
 
 from utils import set_sumo
 # from behavior_net import datasets

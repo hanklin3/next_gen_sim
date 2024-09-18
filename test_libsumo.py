@@ -2,8 +2,7 @@ import numpy as np
 import os
 import sys
 
-use_libsumo = True
-if use_libsumo:
+if os.environ['LIBSUMO'] == "1":
     # sys.path.append(os.path.join(os.environ['W'], 'sumo-1.12.0', 'tools'))
     sys.path.append(os.path.join(os.environ['SUMO_HOME'], 'tools'))
     import libsumo as traci
@@ -11,7 +10,6 @@ if use_libsumo:
 else:
     import traci
     print('Traci')
-    assert False
 
 def traci_get_vehicle_data():
     car_list = traci.vehicle.getIDList()
@@ -45,7 +43,8 @@ def traci_set_vehicle_state():
         speed = 3.0
         traci.vehicle.setSpeed(str(int(vid)), speed)
 
-sumo_cmd = ['/home/gridsan/tools/groups/wulab/sumo-1.12.0/bin/sumo', '-c', './data/sumo/ring_18cars_0.1acc_1.5dec/circles.sumocfg', '--no-step-log', 'true', '--step-length', '0.4']
+# sumo_cmd = ['/home/gridsan/tools/groups/wulab/sumo-1.12.0/bin/sumo', '-c', './data/sumo/ring_18cars_0.1acc_1.5dec/circles.sumocfg', '--no-step-log', 'true', '--step-length', '0.4']
+sumo_cmd = ['sumo', '-c', './data/sumo/ring_18cars_0.1acc_1.5dec/circles.sumocfg', '--no-step-log', 'true', '--step-length', '0.4']
 
 traci.start(sumo_cmd)
 
