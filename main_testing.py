@@ -107,6 +107,7 @@ sumo_cmd = set_sumo(configs['gui'],
 print('sumo_cmd', sumo_cmd)
 
 use_gt_prediction = False
+# use_gt_prediction = True
 
 traci.start(sumo_cmd, label="sim1")
 if use_gt_prediction:
@@ -157,7 +158,7 @@ while step < step_max:
     traj_pool = time_buff_to_traj_pool(TIME_BUFF)
     
     buff_lat, buff_lon, buff_cos_heading, buff_sin_heading, \
-            buff_vid, buff_speed, buff_acc, buff_road_id, buff_lane_id, buff_lane_index = \
+            buff_vid, buff_speed, buff_acc, buff_road_id, buff_lane_id, buff_lane_index, buff_time = \
         traj_pool.flatten_trajectory(
             time_length=model.history_length, max_num_vehicles=model.m_tokens, output_vid=True)
 
@@ -170,10 +171,25 @@ while step < step_max:
         traj_pool_gt = time_buff_to_traj_pool([vehicle_list_gt])
 
         pred_lat, pred_lon, pred_cos_heading, pred_sin_heading, \
-            buff_vid, buff_speed, buff_acc, buff_road_id, buff_lane_id, buff_lane_index = \
+            buff_vid, buff_speed, buff_acc, buff_road_id, buff_lane_id, buff_lane_index, buff_time = \
         traj_pool_gt.flatten_trajectory(
                 time_length=model.history_length, max_num_vehicles=model.m_tokens, output_vid=True)
-        
+        pred_lat = pred_lat[:, ::-1]
+        pred_lon = pred_lon[:, ::-1]
+        pred_cos_heading = pred_cos_heading[:, ::-1]
+        pred_sin_heading = pred_sin_heading[:, ::-1]
+        buff_vid = buff_vid[:, ::-1]
+        buff_speed = buff_speed[:, ::-1]
+        buff_acc = buff_acc[:, ::-1]
+        buff_road_id = buff_road_id[:, ::-1]
+        buff_lane_id = buff_lane_id[:, ::-1]
+        buff_lane_index = buff_lane_index[:, ::-1]
+        buff_time = buff_time[:, ::-1]
+        # print('buff_time before', buff_time)
+        # print('buff_time after', buff_time)
+        # assert False
+        traci.switch("sim1")
+    
     pred_speed = pred_lat
     pred_acceleration = pred_lon
         
@@ -184,6 +200,7 @@ while step < step_max:
     # print('buff_road_id', buff_road_id.shape, buff_road_id, buff_road_id[0,0].decode('utf-8'))
     print('buff_lane_index', buff_lane_index.shape, buff_lane_index, buff_lane_index[0,0])
     print('buff_speed', buff_speed.shape, buff_speed)
+    print('buff_time', buff_time.shape, buff_time)
 
     ## Record prediction to dataframe for metrics later
     rows, cols = buff_vid.shape

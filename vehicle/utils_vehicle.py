@@ -54,8 +54,7 @@ def traci_get_vehicle_data():
     for car_id in car_list:
         x,y = traci.vehicle.getPosition(car_id)
         # Returns the angle in degrees of the named vehicle within the last step.
-        deg2rad = np.pi/180.0
-        angle_deg = traci.vehicle.getAngle(car_id) * deg2rad
+        angle_deg = traci.vehicle.getAngle(car_id)
         speed = traci.vehicle.getSpeed(car_id)
         # speed = traci.vehicle.getLateralSpeed(car_id)
         acceleration = traci.vehicle.getAcceleration(car_id)
@@ -89,7 +88,9 @@ def traci_set_vehicle_state(model_output, buff_vid,
         sin_heading = pred_sin_heading[row_idx][next_idx]
         cos_heading = pred_cos_heading[row_idx][next_idx]
         angle_deg = np.arctan2(sin_heading, cos_heading) * rad2deg
+        angle_deg = 360 + angle_deg if angle_deg < 0 else angle_deg
         angle_deg = tc.INVALID_DOUBLE_VALUE if np.isnan(angle_deg) else angle_deg
+        # angle_deg = pred_sin_heading[row_idx][next_idx]
         print('angle_deg', angle_deg)
         # lane_index = int(buff_lane_index[row_idx][0])
         # print('lane_index', lane_index)
@@ -123,7 +124,7 @@ def traci_set_vehicle_state(model_output, buff_vid,
             angle=float(angle_deg)
             # angle=float((-angle_deg + 90 ) % 360)
             # angle=tc.INVALID_DOUBLE_VALUE #(-angle_deg + 90 ) % 360,
-
+            print('moveToXY', vid, x, y, angle)
             if not is_libsumo:
                 traci.vehicle.moveToXY(
                     str(int(vid)),
