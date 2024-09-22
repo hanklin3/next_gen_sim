@@ -27,6 +27,7 @@ experiment = 'ring_position_close_multiConf_libsumo_9-16__1_speedMode0'
 # experiment = 'ring_position_close_multiConf_libsumo_9-16__1'
 # experiment = 'ring_speed_close_firstNoMatch_08-22-24'
 # experiment = 'ring_speed_open_8-20'
+experiment = 'ring_position_close_setSpeedMode_9-18'
 
 save_path = f'./results/inference/behavior_net/{experiment}'
 
@@ -87,8 +88,8 @@ data_speed = data_speed_pred
 colors = cm.rainbow(norm(data_speed))
 print('colors', len(colors))
 
-print('norm(data_speed)', norm(data_speed))
-assert False
+# print('norm(data_speed)', norm(data_speed))
+# assert False
 
 iplot = 0
 # for sim_num in [0]:

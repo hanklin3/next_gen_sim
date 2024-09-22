@@ -4,11 +4,13 @@ import sys
 from trajectory_pool import TrajectoryPool
 from vehicle import Vehicle
 
+is_libsumo = False
 if os.environ['LIBSUMO'] == "1":
     # sys.path.append(os.path.join(os.environ['W'], 'sumo-1.12.0', 'tools'))
     sys.path.append(os.path.join(os.environ['SUMO_HOME'], 'tools'))
     import libsumo as traci
     print('Using libsumo')
+    is_libsumo = True
 else:
     import traci
     print('Traci')
@@ -115,17 +117,23 @@ def traci_set_vehicle_state(model_output, buff_vid,
             # If keepRoute is set to 2 the vehicle has all the freedom of keepRoute=0
             # but in addition to that may even move outside the road network.
             keeproute = 2 # which will map the vehicle to the exact x and y positions
-            traci.vehicle.moveToXY(
-                str(int(vid)),
-                edgeID="",
-                laneIndex=-1, #lane_index,
-                # lane=-1,
-                x=float(pred_lat[row_idx,next_idx]), #front_bumper_xy_sumo[0],
-                y=float(pred_lon[row_idx,next_idx]), #front_bumper_xy_sumo[1],
-                # angle=tc.INVALID_DOUBLE_VALUE, #(-angle_deg + 90 ) % 360,
-                angle=float(angle_deg),
-                keepRoute=keeproute,
-            )
+
+            x=float(pred_lat[row_idx,next_idx]) #front_bumper_xy_sumo[0],
+            y=float(pred_lon[row_idx,next_idx]) #front_bumper_xy_sumo[1],
+            angle=float(angle_deg)
+            # angle=float((-angle_deg + 90 ) % 360)
+            # angle=tc.INVALID_DOUBLE_VALUE #(-angle_deg + 90 ) % 360,
+
+            if not is_libsumo:
+                traci.vehicle.moveToXY(
+                    str(int(vid)),
+                    edgeID="", lane=-1, x=x, y=y, angle=angle, keepRoute=keeproute,
+                )
+            else:
+                traci.vehicle.moveToXY(
+                    str(int(vid)),
+                    edgeID="", laneIndex=-1, x=x,  y=y, angle=angle, keepRoute=keeproute,
+                )
         elif model_output == 'speed':
             ####################Speed
             # print('pred_speed', pred_speed[row_idx,0])

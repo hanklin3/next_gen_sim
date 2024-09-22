@@ -553,6 +553,12 @@ class Trainer(object):
                         # buff_lat_dl, buff_lat, buff_speed_dl, buff_speed, 
                         # speeds_list_dl[0], speeds_list[0]
                         )
+                    if not torch.allclose(one_input, input_matrix, rtol=1e-01, atol=1e-01, equal_nan=True):
+                        print(
+                            (one_input, input_matrix, one_input - input_matrix)
+                            # buff_lat_dl, buff_lat, buff_speed_dl, buff_speed, 
+                            # speeds_list_dl[0], speeds_list[0]
+                            )
                     is_first_match = True
                 # assert False, "ITs true in step"
             else:

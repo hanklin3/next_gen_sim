@@ -106,7 +106,11 @@ sumo_cmd = set_sumo(configs['gui'],
 #                     configs['sumocfg_file_name'], configs['max_steps'])
 print('sumo_cmd', sumo_cmd)
 
-traci.start(sumo_cmd)
+use_gt_prediction = False
+
+traci.start(sumo_cmd, label="sim1")
+if use_gt_prediction:
+    traci.start(sumo_cmd, label="gt")
 # %%
 
 TIME_BUFF = []
@@ -118,14 +122,23 @@ model_output = configs['model_output']
 dataf = []
 df_predicted = []
 
+if use_gt_prediction:
+    # gt one ahead
+    traci.switch("gt")
+    traci.simulationStep() # run 1 step for sim2
+
 time_start = time.time()
 step_max = configs['max_steps']
 step = 0
 while step < step_max:
     print(step)
 
-    traci.simulationStep()
-    
+    if use_gt_prediction:
+        traci.switch("gt")
+        traci.simulationStep() # run 1 step for sim2
+    traci.switch("sim1")
+    traci.simulationStep() # run 1 step for sim1
+
     step += 1
         
     vehicle_list = traci_get_vehicle_data()
@@ -151,6 +164,16 @@ while step < step_max:
     pred_lat, pred_lon, pred_cos_heading, pred_sin_heading, buff_lat, buff_lon = \
         model.run_forwardpass(buff_lat, buff_lon, buff_cos_heading, buff_sin_heading)
 
+    if use_gt_prediction:
+        traci.switch("gt")
+        vehicle_list_gt = traci_get_vehicle_data()
+        traj_pool_gt = time_buff_to_traj_pool([vehicle_list_gt])
+
+        pred_lat, pred_lon, pred_cos_heading, pred_sin_heading, \
+            buff_vid, buff_speed, buff_acc, buff_road_id, buff_lane_id, buff_lane_index = \
+        traj_pool_gt.flatten_trajectory(
+                time_length=model.history_length, max_num_vehicles=model.m_tokens, output_vid=True)
+        
     pred_speed = pred_lat
     pred_acceleration = pred_lon
         
