@@ -518,7 +518,7 @@ class Trainer(object):
             traj_pool = time_buff_to_traj_pool(TIME_BUFF)
 
             buff_lat, buff_lon, buff_cos_heading, buff_sin_heading, \
-            buff_vid, buff_speed, buff_acc, buff_road_id, buff_lane_id, buff_lane_index = \
+            buff_vid, buff_speed, buff_acc, buff_road_id, buff_lane_id, buff_lane_index, buff_time = \
             traj_pool.flatten_trajectory(
                 time_length=self.history_length, max_num_vehicles=self.m_tokens, output_vid=True)
             
