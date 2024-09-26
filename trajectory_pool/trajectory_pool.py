@@ -139,7 +139,7 @@ class TrajectoryPool(object):
         #     buff_vid[i, :] = vs[-1].id
         #     i += 1
 
-        print('tp buff_time before', buff_time[0]) #  [5. 4. 3. 2. 1.]
+        # print('tp buff_time before', buff_time[0]) #  [5. 4. 3. 2. 1.]
 
         buff_lat = buff_lat[:, ::-1]
         buff_lon = buff_lon[:, ::-1]
@@ -153,7 +153,7 @@ class TrajectoryPool(object):
         buff_lane_index = buff_lane_index[:, ::-1]
         buff_time = buff_time[:, ::-1]
 
-        print('tp buff_time after', buff_time[0]) # [1. 2. 3. 4. 5.]
+        # print('tp buff_time after', buff_time[0]) # [1. 2. 3. 4. 5.]
 
         # pad or crop to m x max_num_vehicles
         buff_lat = self._fixed_num_vehicles(buff_lat, max_num_vehicles)

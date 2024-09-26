@@ -26,7 +26,7 @@ pred_length: 5  # number of predicted steps output by the model
 max_num_vehicles: 32  # maximum number of vehicles that can be handled by the model
 m_tokens: 32  # maximum number of vehicles that can be handled by the model
 model_output: "speed"  # position or speed
-# model_output: "no_set"  # position or speed
+model_output: "no_set"  # position or speed
 
 # experiment: &experiment "ring_speed_close_firstNoMatch_08-22-24"
 # base_model_dir: &base_model_dir "./results/training/behavior_net/"

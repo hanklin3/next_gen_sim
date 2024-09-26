@@ -73,6 +73,13 @@ def traci_get_vehicle_data():
     return vehicle_list
 
 
+def cossin2deg(sin_heading, cos_heading):
+    rad2deg = 180.0 / np.pi
+    angle_deg = np.arctan2(sin_heading, cos_heading) * rad2deg
+    angle_deg = 360 + angle_deg if angle_deg < 0 else angle_deg
+    return angle_deg
+
+
 def traci_set_vehicle_state(model_output, buff_vid,
                             pred_lat, pred_lon, 
                             pred_cos_heading, pred_sin_heading,
@@ -83,12 +90,10 @@ def traci_set_vehicle_state(model_output, buff_vid,
         if np.isnan(vid):
             continue
 
-        rad2deg = 180.0 / np.pi
         next_idx = 0
         sin_heading = pred_sin_heading[row_idx][next_idx]
         cos_heading = pred_cos_heading[row_idx][next_idx]
-        angle_deg = np.arctan2(sin_heading, cos_heading) * rad2deg
-        angle_deg = 360 + angle_deg if angle_deg < 0 else angle_deg
+        angle_deg = cossin2deg(sin_heading, cos_heading)
         angle_deg = tc.INVALID_DOUBLE_VALUE if np.isnan(angle_deg) else angle_deg
         # angle_deg = pred_sin_heading[row_idx][next_idx]
         print('angle_deg', angle_deg)

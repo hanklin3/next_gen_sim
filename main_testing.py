@@ -25,7 +25,7 @@ from behavior_net.model_inference import Predictor
 from trajectory_pool import TrajectoryPool
 from vehicle import Vehicle
 from vehicle.utils_vehicle import (to_vehicle, time_buff_to_traj_pool, 
-    traci_get_vehicle_data, traci_set_vehicle_state)
+    traci_get_vehicle_data, traci_set_vehicle_state, cossin2deg)
 
 if 'SUMO_HOME' in os.environ:
     sys.path.append(os.path.join(os.environ['SUMO_HOME'], 'tools'))
@@ -106,8 +106,10 @@ sumo_cmd = set_sumo(configs['gui'],
 #                     configs['sumocfg_file_name'], configs['max_steps'])
 print('sumo_cmd', sumo_cmd)
 
-use_gt_prediction = False
-# use_gt_prediction = True
+DF_HEADER = ['Simulation No', 'Time', 'Car', 'x', 'y', 'Speed', 'Heading']
+
+use_gt_prediction = configs['use_gt_prediction']
+print('use_gt_prediction', use_gt_prediction)
 
 traci.start(sumo_cmd, label="sim1")
 if use_gt_prediction:
@@ -147,7 +149,7 @@ while step < step_max:
     if step > history_length:
         for veh in vehicle_list:  
             dataf.append([int(0), step * sim_resol, int(veh.id), 
-                        float(veh.location.x), float(veh.location.y), float(veh.speed)])
+                        float(veh.location.x), float(veh.location.y), float(veh.speed), float(veh.speed_heading_deg)])
                 
     TIME_BUFF.append(vehicle_list)
         
@@ -211,11 +213,16 @@ while step < step_max:
             nextx, nexty = pred_lat[irow, icol], pred_lon[irow, icol]
             next_vid = buff_vid[irow, icol]
             next_speed = pred_speed[irow, icol]
+            
+            sin_heading = pred_sin_heading[irow][icol]
+            cos_heading = pred_cos_heading[irow][icol]
+            angle_deg = cossin2deg(sin_heading, cos_heading)
+            print('next_vid', next_vid)
             if np.isnan(next_vid):
                 # reach max vehicles
                 continue
             df_predicted.append([int(0), (step+1) * sim_resol, int(next_vid), 
-                                float(nextx), float(nexty), float(next_speed)])
+                                float(nextx), float(nexty), float(next_speed), float(angle_deg)])
     
     traci_set_vehicle_state(model_output, buff_vid,
                             pred_lat, pred_lon, 
@@ -237,7 +244,7 @@ os.makedirs(save_path, exist_ok=True)
 
 arr = np.asarray(dataf)
 df_traj = pd.DataFrame(arr,
-                       columns=['Simulation No', 'Time', 'Car', 'x', 'y', 'Speed'])
+                       columns=DF_HEADER)
 df_traj['Simulation No'] = df_traj['Simulation No'].astype(int)
 df_traj['Car'] = df_traj['Car'].astype(int)
 
@@ -309,6 +316,8 @@ print(np.unique(df_traj['Car']))
 # Save sumo simuilation dataframe
 if model_output == 'no_set':
     save_file = os.path.join(save_path, f'df_traj_sumo_gt_{step_max}.csv')  # sumo gt log
+elif use_gt_prediction:
+    save_file = os.path.join(save_path, f'df_traj_sumo_close_sumoPRED_{step_max}.csv') # sumo close loop pred on log data
 else:
     save_file = os.path.join(save_path, f'df_traj_sumo_close_{step_max}.csv')  # sumo log close loop
 df_traj.to_csv(save_file)
@@ -317,7 +326,7 @@ print('saved to ', save_file)
 # Save model prediction dataframe
 arr_predicted = np.asarray(df_predicted)
 df_traj_predicted = pd.DataFrame(arr_predicted,
-                       columns=['Simulation No', 'Time', 'Car', 'x', 'y', 'Speed'])
+                       columns=DF_HEADER)
 df_traj_predicted['Simulation No'] = df_traj['Simulation No'].astype(int)
 df_traj_predicted['Car'] = df_traj['Car'].astype(int)
 pos2 = get_pos2(df_traj_predicted['x'].values, df_traj_predicted['y'].values)
@@ -325,6 +334,8 @@ df_traj_predicted.insert(len(df_traj_predicted.columns), "Position", pos2)
 
 if model_output == 'no_set':
     save_file = os.path.join(save_path, f'df_traj_pred_open_loop_{step_max}.csv')  # model open loop pred on log data
+elif use_gt_prediction:
+    save_file = os.path.join(save_path, f'df_traj_pred_close_loop_sumoPRED_{step_max}.csv') # sumo close loop pred on log data
 else:
     save_file = os.path.join(save_path, f'df_traj_pred_close_loop_{step_max}.csv') # model close loop pred on log data
 df_traj_predicted.to_csv(save_file)
