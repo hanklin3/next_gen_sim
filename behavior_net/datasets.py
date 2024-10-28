@@ -21,11 +21,11 @@ else:
     print('Traci')
 
 from torch.utils.data import Dataset, DataLoader
-from trajectory_pool import TrajectoryPool
+from trajectory_pool import TrajectoryPool, time_buff_to_traj_pool
 
 # import simulation_modeling.utils as utils
 from . import utils
-from vehicle.utils_vehicle import to_vehicle, time_buff_to_traj_pool, traci_get_vehicle_data
+from vehicle.utils_vehicle import to_vehicle, traci_get_vehicle_data
 
 
 class MTLTrajectoryPredictionDataset(Dataset):
@@ -83,7 +83,7 @@ class MTLTrajectoryPredictionDataset(Dataset):
         #     raise NotImplementedError( 'Wrong dataset name %s (choose one from [AA_rdbt, rounD,...])' % self.dataset)
 
         # traj_pool = self.fill_in_traj_pool(t0=idx, datafolder_dirs=datafolder_dirs)
-        # buff_lat, buff_lon, buff_cos_heading, buff_sin_heading = traj_pool.flatten_trajectory(
+        # buff_lat, buff_lon, buff_cos_heading, buff_sin_heading, buff_heading_deg = traj_pool.flatten_trajectory(
         #     max_num_vehicles=self.max_num_vehicles, time_length=self.history_length+self.pred_length)
 
         # input_matrix, gt_matrix = self.make_training_data_pair(buff_lat, buff_lon, buff_cos_heading, buff_sin_heading)

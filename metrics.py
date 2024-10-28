@@ -25,18 +25,19 @@ experiment = 'ring_position_fixed_08-09-24__dxdy'  # pos_rmse 41.437289445872075
 experiment = 'ring_position_close_multi_configs_9-05__1' # pos_rmse 0.0 minADE 0.0
 experiment = 'ring_position_close_multi_configs_9-05__2' # pos_rmse 0.0 minADE 0.0
 experiment = 'ring_position_close_multi_configs_9-05__3' # pos_rmse 0.0 minADE 0.0
-experiment = 'ring_position_close_setSpeedMode_9-18__refine_angle_9-22' # pos_rmse 5.49, minADE 0.184
-                                                                        # pos_rmse 6.9795 , minADE 0.1738 
+experiment = 'ring_position_close_setSpeedMode_9-18__refine_angle_9-22' # pos_rmse 5.49, minADE 0.184, heading from sin cos 
+                                                                        # pos_rmse 6.9795 , minADE 0.1738, heading from sin cos 
+                                                                        # pos_rmse 5.9360, minADE 0.15052, heading from position
 # experiment = 'ring_position_close_setSpeedMode_9-18__refine_fix_angle_9-22' # pos_rmse 9.8909, minADE 0.1294
 # experiment = 'ring_speed_close_setSpeedMode_9-18'
 
 save_path = f'./results/inference/behavior_net/{experiment}'
 
 ### log vs model close-loop
+# path = f'./results/inference/behavior_net/{experiment}/df_traj_sumo_gt_1000.csv'
+# path_pred = f'./results/inference/behavior_net/{experiment}/df_traj_sumo_close_1000.csv'
 path = f'./results/inference/behavior_net/{experiment}/df_traj_sumo_gt_1000.csv'
 path_pred = f'./results/inference/behavior_net/{experiment}/df_traj_sumo_close_1000.csv'
-# path_pred = f'./results/inference/behavior_net/{experiment}/df_traj_pred_close_loop_1000.csv'
-# path_pred = f'./results/inference/behavior_net/{experiment}/df_traj_1000.csv'
 # exp_type = 'close-loop'
 
 def get_traj(path):
@@ -200,3 +201,5 @@ def get_minADE(traj_gt, traj_pred):
 
 minADE = get_minADE(traj_gt, traj_pred)
 print('minADE', minADE)
+
+# %%

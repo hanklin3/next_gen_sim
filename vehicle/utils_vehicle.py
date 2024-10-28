@@ -1,7 +1,7 @@
 import os
 import numpy as np
 import sys
-from trajectory_pool import TrajectoryPool
+# from trajectory_pool import TrajectoryPool
 from vehicle import Vehicle
 
 is_libsumo = False
@@ -16,12 +16,6 @@ else:
     print('Traci')
     
 import traci.constants as tc
-
-def time_buff_to_traj_pool(TIME_BUFF):
-    traj_pool = TrajectoryPool()
-    for i in range(len(TIME_BUFF)):
-        traj_pool.update(TIME_BUFF[i])
-    return traj_pool
 
 
 def to_vehicle(x, y, angle_deg, id, speed, road_id, lane_id, lane_index, acceleration):
@@ -77,13 +71,16 @@ def cossin2deg(sin_heading, cos_heading):
     rad2deg = 180.0 / np.pi
     angle_deg = np.arctan2(sin_heading, cos_heading) * rad2deg
     angle_deg = 360 + angle_deg if angle_deg < 0 else angle_deg
+    # angle_deg = angle_deg % 360
     return angle_deg
 
 
 def traci_set_vehicle_state(model_output, buff_vid,
                             pred_lat, pred_lon, 
                             pred_cos_heading, pred_sin_heading,
-                            pred_speed, pred_acceleration, sim_resol=0.4):
+                            pred_speed, pred_acceleration, 
+                            buff_lat, buff_lon, buff_cos_heading, buff_sin_heading,
+                            sim_resol=0.4):
     for row_idx, row in enumerate(buff_vid):
         # print('row_idx, row', row_idx, row)
         vid = row[0]
@@ -93,25 +90,38 @@ def traci_set_vehicle_state(model_output, buff_vid,
         next_idx = 0
         sin_heading = pred_sin_heading[row_idx][next_idx]
         cos_heading = pred_cos_heading[row_idx][next_idx]
+        # sin_heading = buff_sin_heading[row_idx][-1]
+        # cos_heading = buff_cos_heading[row_idx][-1]
         angle_deg = cossin2deg(sin_heading, cos_heading)
         angle_deg = tc.INVALID_DOUBLE_VALUE if np.isnan(angle_deg) else angle_deg
-        # angle_deg = pred_sin_heading[row_idx][next_idx]
         print('angle_deg', angle_deg)
         # lane_index = int(buff_lane_index[row_idx][0])
         # print('lane_index', lane_index)
+
+        current_idx = 4
+        x_current = buff_lat[row_idx, current_idx]
+        y_current = buff_lon[row_idx, current_idx]
+        x_next = pred_lat[row_idx, next_idx]
+        y_next = pred_lon[row_idx, next_idx]
+        # angle_deg = cossin2deg(x_next - x_current, y_next - y_current)
+        # why is it not atan2(y2-y1, x2-x1)?
+        # angle_deg = cossin2deg(y_next - y_current, x_next - x_current)
 
         speedMode = 0 # no check
         traci.vehicle.setSpeedMode(str(int(vid)), speedMode)
         
         if model_output == 'position_dxdy':
-            dx = np.diff(pred_lat[row_idx,:])
-            dy = np.diff(pred_lon[row_idx,:])
+            cur_pred_lat = np.concatenate([buff_lat[row_idx, current_idx:current_idx+1],  pred_lat[row_idx,:]])
+            cur_pred_lon = np.concatenate([buff_lon[row_idx ,current_idx:current_idx+1],  pred_lon[row_idx,:]])
+            dx = np.diff(cur_pred_lat[:])
+            dy = np.diff(cur_pred_lon[:])
             speed = np.sqrt(dx**2 + dy**2) / sim_resol
             # speed = max(dx / configs['sim_resol'], dy / configs['sim_resol'])
             # print('dx', dx.shape, dx) # (4,)
             # print('speed', speed)
-            
+
             # assert speed[0] > 0, (speed, pred_speed[row_idx,:], pred_speed[row_idx,:])
+            # assert not np.isnan(float(speed[0])), float(speed[0])
             print('position_dxdy', str(int(vid)), float(speed[0]))
 
             traci.vehicle.setSpeed(str(int(vid)), float(speed[0]))

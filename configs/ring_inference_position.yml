@@ -24,11 +24,12 @@ dataset: "ring"
 history_length: 5  # number of historical steps input to the model
 pred_length: 5  # number of predicted steps output by the model
 m_tokens: 32  # maximum number of vehicles that can be handled by the model
-# model_output: "position_xy"  # use traci.vehicle.moveToXY()
-model_output: "position_dxdy"  # compute dx,dy, then use traci.vehicle.setSpeed()
+model_output: "position_xy"  # use traci.vehicle.moveToXY()
+# model_output: "position_dxdy"  # compute dx,dy, then use traci.vehicle.setSpeed()
 # model_output: "no_set"  # not set traci, sumo log data
-use_gt_prediction: True
-# use_gt_prediction: False
+use_gt_prediction: False
+# use_gt_prediction: True
+
 
 # experiment_name: &experiment ring_position_close_loop_8-20
 # Checkpoints of the trained models (behavior modeling net, safety mapping net, etc.)
@@ -44,17 +45,17 @@ use_gt_prediction: True
 # behavior_model_ckpt_dir: "./results/training/behavior_net/ring_position_close_multi_configs_9-05/checkpoints/last_ckpt.pt"
 # behavior_model_ckpt_dir: "./results/training/behavior_net/ring_position_close_multiConf_libsumo_9-16/checkpoints/last_ckpt.pt"
 # behavior_model_ckpt_dir: "./results/training/behavior_net/ring_position_close_setSpeedMode_9-18/checkpoints/last_ckpt.pt"
-# behavior_model_ckpt_dir: "./results/training/behavior_net/ring_position_close_setSpeedMode_9-18__refine_angle_9-22/checkpoints/last_ckpt.pt"
-behavior_model_ckpt_dir: "./results/training/behavior_net/ring_position_close_setSpeedMode_9-18__refine_angle_9-22_dxdy/checkpoints/last_ckpt.pt"
+behavior_model_ckpt_dir: "./results/training/behavior_net/ring_position_close_setSpeedMode_9-18__refine_angle_9-22/checkpoints/last_ckpt.pt"
+# behavior_model_ckpt_dir: "./results/training/behavior_net/ring_position_close_setSpeedMode_9-18__refine_angle_9-22_dxdy/checkpoints/last_ckpt.pt"
 # behavior_model_ckpt_dir: "./results/training/behavior_net/ring_position_close_setSpeedMode_9-18__refine_fix_angle_9-22/checkpoints/last_ckpt.pt"
 # behavior_model_ckpt_dir: "./results/training/behavior_net/ring_position_close_moveToXY_angle_9-24/checkpoints/last_ckpt.pt"
 safety_mapper_ckpt_dir: "data/inference/rounD/safety_mapper_ckpt/safety_mapping_net.pt"
 
 # Whether use neural safety mapping module
-use_neural_safety_mapping: True
+use_neural_safety_mapping: False
 
 # Whether use conflict critic module (crash critic module)
-use_conflict_critic_module: True
+use_conflict_critic_module: False
 
 # Other inference simulation settings
 sim_resol: 0.4  # simulation resolution. unit: s

@@ -2,6 +2,13 @@ import numpy as np
 import copy
 import matplotlib.pyplot as plt
 
+from vehicle.utils_vehicle import cossin2deg
+
+def time_buff_to_traj_pool(TIME_BUFF):
+    traj_pool = TrajectoryPool()
+    for i in range(len(TIME_BUFF)):
+        traj_pool.update(TIME_BUFF[i])
+    return traj_pool
 
 class TrajectoryPool(object):
     """
@@ -79,6 +86,8 @@ class TrajectoryPool(object):
         buff_cos_heading[:] = np.nan
         buff_sin_heading = np.empty([veh_num, time_length])
         buff_sin_heading[:] = np.nan
+        buff_heading_deg = np.empty([veh_num, time_length])
+        buff_heading_deg[:] = np.nan
         buff_vid = np.empty([veh_num, time_length])
         buff_vid[:] = np.nan
         buff_speed = np.empty([veh_num, time_length])
@@ -113,10 +122,9 @@ class TrajectoryPool(object):
                 buff_sin_heading[i, t] = np.sin(np.radians(heading))
                 # buff_cos_heading[i, t] = heading
                 # buff_sin_heading[i, t] = heading
-                rad2deg = 180.0 / np.pi
-                angle_deg = np.arctan2(buff_sin_heading[i, t], buff_cos_heading[i, t]) * rad2deg
-                angle_deg = 360 + angle_deg if angle_deg < 0 else angle_deg
+                angle_deg = cossin2deg(buff_sin_heading[i, t], buff_cos_heading[i, t])
                 assert np.allclose(angle_deg, heading), (angle_deg, heading)
+                buff_heading_deg[i, t] = angle_deg
                 buff_speed[i, t] = vs[j].speed
                 buff_acc[i, t] = vs[j].acceleration
                 buff_vid[i, t] = vs[j].id
@@ -145,6 +153,7 @@ class TrajectoryPool(object):
         buff_lon = buff_lon[:, ::-1]
         buff_cos_heading = buff_cos_heading[:, ::-1]
         buff_sin_heading = buff_sin_heading[:, ::-1]
+        buff_heading_deg = buff_heading_deg[:, ::-1]
         buff_speed = buff_speed[:, ::-1]
         buff_acc = buff_acc[:, ::-1]
         buff_vid = buff_vid[:, ::-1]
@@ -160,6 +169,7 @@ class TrajectoryPool(object):
         buff_lon = self._fixed_num_vehicles(buff_lon, max_num_vehicles)
         buff_cos_heading = self._fixed_num_vehicles(buff_cos_heading, max_num_vehicles)
         buff_sin_heading = self._fixed_num_vehicles(buff_sin_heading, max_num_vehicles)
+        buff_heading_deg = self._fixed_num_vehicles(buff_heading_deg, max_num_vehicles)
         buff_vid = self._fixed_num_vehicles(buff_vid, max_num_vehicles)
         buff_speed = self._fixed_num_vehicles(buff_speed, max_num_vehicles)
         buff_acc = self._fixed_num_vehicles(buff_acc, max_num_vehicles)
@@ -171,7 +181,7 @@ class TrajectoryPool(object):
             return buff_lat, buff_lon, buff_cos_heading, buff_sin_heading, \
                 buff_vid, buff_speed, buff_acc, buff_road_id, buff_lane_id, buff_lane_index, buff_time
         else:
-            return buff_lat, buff_lon, buff_cos_heading, buff_sin_heading
+            return buff_lat, buff_lon, buff_cos_heading, buff_sin_heading #, buff_heading_deg
 
     @staticmethod
     def _fixed_num_vehicles(x, max_num_vehicles):

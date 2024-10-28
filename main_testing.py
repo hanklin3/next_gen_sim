@@ -22,9 +22,9 @@ else:
 from utils import set_sumo
 # from behavior_net import datasets
 from behavior_net.model_inference import Predictor
-from trajectory_pool import TrajectoryPool
+from trajectory_pool import TrajectoryPool, time_buff_to_traj_pool
 from vehicle import Vehicle
-from vehicle.utils_vehicle import (to_vehicle, time_buff_to_traj_pool, 
+from vehicle.utils_vehicle import (to_vehicle, 
     traci_get_vehicle_data, traci_set_vehicle_state, cossin2deg)
 
 if 'SUMO_HOME' in os.environ:
@@ -217,7 +217,7 @@ while step < step_max:
             sin_heading = pred_sin_heading[irow][icol]
             cos_heading = pred_cos_heading[irow][icol]
             angle_deg = cossin2deg(sin_heading, cos_heading)
-            print('next_vid', next_vid)
+            # print('next_vid', next_vid)
             if np.isnan(next_vid):
                 # reach max vehicles
                 continue
@@ -227,7 +227,9 @@ while step < step_max:
     traci_set_vehicle_state(model_output, buff_vid,
                             pred_lat, pred_lon, 
                             pred_cos_heading, pred_sin_heading,
-                            pred_speed, pred_acceleration, configs['sim_resol'])
+                            pred_speed, pred_acceleration, 
+                            buff_lat, buff_lon, buff_cos_heading, buff_sin_heading,
+                            configs['sim_resol'])
 
 traci.close()
 
@@ -315,11 +317,11 @@ print(np.unique(df_traj['Car']))
 ###########################
 # Save sumo simuilation dataframe
 if model_output == 'no_set':
-    save_file = os.path.join(save_path, f'df_traj_sumo_gt_{step_max}.csv')  # sumo gt log
+    save_file = os.path.join(save_path, f'df_traj_sumo_gt_{step_max}.csv')  # sumo gt log data
 elif use_gt_prediction:
-    save_file = os.path.join(save_path, f'df_traj_sumo_close_sumoPRED_{step_max}.csv') # sumo close loop pred on log data
+    save_file = os.path.join(save_path, f'df_traj_sumo_close_sumoPRED_{step_max}.csv') # sumo sim close loop - perfect model
 else:
-    save_file = os.path.join(save_path, f'df_traj_sumo_close_{step_max}.csv')  # sumo log close loop
+    save_file = os.path.join(save_path, f'df_traj_sumo_close_{step_max}.csv')  # sumo sim data (from model output)
 df_traj.to_csv(save_file)
 print('saved to ', save_file)
 ########################################
@@ -337,7 +339,7 @@ if model_output == 'no_set':
 elif use_gt_prediction:
     save_file = os.path.join(save_path, f'df_traj_pred_close_loop_sumoPRED_{step_max}.csv') # sumo close loop pred on log data
 else:
-    save_file = os.path.join(save_path, f'df_traj_pred_close_loop_{step_max}.csv') # model close loop pred on log data
+    save_file = os.path.join(save_path, f'df_traj_pred_close_loop_{step_max}.csv') # model close loop pred on sim data
 df_traj_predicted.to_csv(save_file)
 print('saved to ', save_file)
 ##########################

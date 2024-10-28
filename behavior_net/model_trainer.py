@@ -25,8 +25,11 @@ from .networks import define_G, define_D, set_requires_grad, define_safety_mappe
 from .loss import UncertaintyRegressionLoss, GANLoss
 from .metric import RegressionAccuracy
 from . import utils
-from vehicle.utils_vehicle import (to_vehicle, time_buff_to_traj_pool, 
+from trajectory_pool import time_buff_to_traj_pool
+from vehicle.utils_vehicle import (to_vehicle, 
                                    traci_get_vehicle_data, traci_set_vehicle_state)
+import torch.multiprocessing as mp
+import concurrent.futures
 
 # Decide which device we want to run on
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -63,9 +66,9 @@ class Trainer(object):
         self.net_D = define_D(input_dim=self.output_dim).to(device)
 
         # initialize safety mapping networks to involve it in the training loop
-        self.net_safety_mapper = define_safety_mapper(configs["safety_mapper_ckpt_dir"], self.m_tokens).to(device)
-        self.net_safety_mapper.eval()
-        set_requires_grad(self.net_safety_mapper, requires_grad=False)
+        # self.net_safety_mapper = define_safety_mapper(configs["safety_mapper_ckpt_dir"], self.m_tokens).to(device)
+        # self.net_safety_mapper.eval()
+        # set_requires_grad(self.net_safety_mapper, requires_grad=False)
 
         # Learning rate
         self.lr = configs["lr"]
@@ -392,7 +395,7 @@ class Trainer(object):
         gt_cos_sin_heading, mask_cos_sin_heading = self.gt[:, :, int(self.output_dim / 2):], self.mask[:, :, int(self.output_dim / 2):]
 
         self.reg_loss_position = self.regression_loss_func_pos(G_pred_pos_at_step0, G_pred_std_pos_at_step0, gt_pos, weight=mask_pos)
-        self.reg_loss_heading = 20 * self.regression_loss_func_heading(y_pred_mean=G_pred_cos_sin_heading_at_step0, y_pred_std=None, y_true=gt_cos_sin_heading, weight=mask_cos_sin_heading)
+        self.reg_loss_heading = 5 * self.regression_loss_func_heading(y_pred_mean=G_pred_cos_sin_heading_at_step0, y_pred_std=None, y_true=gt_cos_sin_heading, weight=mask_cos_sin_heading)
 
         D_pred_fake = self.net_D(self.G_pred_mean[0])
         # Filter out ghost vehicles
@@ -468,6 +471,7 @@ class Trainer(object):
 
         self.G_pred_mean.append(mean_pos_cos_sin_heading)
         self.G_pred_std.append(std_pos)
+    
 
     def _forward_pass_sim_one_batch(self, one_input, idx_history, veh_ids, sumo_cmd, debug=True, 
                                     buff_speed_dl=None, buff_lat_dl=None, speeds_list_dl=None):
@@ -603,7 +607,10 @@ class Trainer(object):
             traci_set_vehicle_state(self.model_output, buff_vid.cpu().detach().numpy(),
                 pred_lat.cpu().detach().numpy(), pred_lon.cpu().detach().numpy(), 
                 pred_cos_heading.cpu().detach().numpy(), pred_sin_heading.cpu().detach().numpy(),
-                pred_speed.cpu().detach().numpy(), pred_acceleration.cpu().detach().numpy(), self.sim_resol)
+                pred_speed.cpu().detach().numpy(), pred_acceleration.cpu().detach().numpy(), 
+                buff_lat, buff_lon, 
+                buff_cos_heading, buff_sin_heading,
+                self.sim_resol)
 
 
             idx_output += 1
@@ -618,8 +625,8 @@ class Trainer(object):
 
         outputs['mean_pos_cos_sin_heading'][:, :] = torch.cat(
             [pred_lat_mean_loop, pred_lon_mean_loop, pred_cos_heading_loop, 
-             pred_cos_heading_loop], axis=-1).to(device)
-        outputs['std_pos'][:, :] = torch.cat([pred_lat_std_loop, pred_lon_std_loop], axis=-1).to(device)
+             pred_cos_heading_loop], axis=-1)
+        outputs['std_pos'][:, :] = torch.cat([pred_lat_std_loop, pred_lon_std_loop], axis=-1)
 
         return outputs
 

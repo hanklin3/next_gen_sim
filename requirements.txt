@@ -1,9 +1,14 @@
-matplotlib
-numpy
-opencv_python
-pandas
-PyYAML
-scipy
-Shapely
-tensorboard
-traci==1.19   # make sure it matches your sumo binary version
+libsumo==1.19.0
+libsumo.egg==info
+matplotlib==3.7.1
+numpy==1.25.0
+numpy==1.21.5
+pandas==2.0.2
+PyYAML==5.4.1
+PyYAML==6.0.2
+Shapely==2.0.6
+sumolib==1.20.0
+sumolib.egg==info
+torch==2.4.0.dev20240421+cu121
+traci==1.20.0
+traci.egg==info

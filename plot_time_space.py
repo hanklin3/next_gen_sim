@@ -42,7 +42,7 @@ path_pred = f'./results/inference/behavior_net/{experiment}/df_traj_sumo_close_1
 # path_pred = f'./results/inference/behavior_net/{experiment}/df_traj_pred_close_loop_1000.csv'
 # path_pred = f'./results/inference/behavior_net/{experiment}/df_traj_1000.csv'
 title_list = ['env_no_set (gt log)', 'env_set_by_model (pred)']
-exp_name = 'envSUMO_gt_vs_close'
+exp_name = 'envSUMO_gt_vs_envSUMO_close'
 
 # model-env_set_by_model vs sumo control output
 path = f'./results/inference/behavior_net/{experiment}/df_traj_sumo_close_1000.csv'
@@ -61,6 +61,13 @@ exp_name = 'sumo_pred_gt_vs_model_pred'
 # path_pred = f'./results/inference/behavior_net/{experiment}/df_traj_pred_close_loop_sumoPRED_1000.csv'
 # title_list = ['env_no_set (gt log)', 'SUMO_control_output (oracle)']
 # exp_name = 'envSUMO_gt_vs_sumo_pred_gt'
+
+# model-env_set_by_model vs sumo pred (gt)
+path = f'./results/inference/behavior_net/{experiment}/df_traj_sumo_close_1000.csv'
+path_pred = f'./results/inference/behavior_net/{experiment}/df_traj_pred_close_loop_sumoPRED_1000.csv'
+title_list = ['SUMO sim env', 'Perfect model']
+exp_name = 'envSUMO_close_vs_sumo_pred_gt'
+
 
 def get_traj(path):
     trajectory = pd.read_csv(path)

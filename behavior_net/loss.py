@@ -41,6 +41,7 @@ class UncertaintyRegressionLoss(nn.Module):
             diff_map_std = torch.abs(torch.abs(y_pred_mean - y_true) - y_pred_std)
             diff_map = diff_map_mean + diff_map_std
         elif self.choice == 'cos_sin_heading_mae':
+            # y_pred_mean, y_true [32, 32, 10] concat sin and cos heading
             diff_map = torch.abs(y_pred_mean - y_true)
         else:
             raise NotImplementedError(
