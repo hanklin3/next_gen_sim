@@ -650,8 +650,8 @@ class Trainer(object):
             
             # Iterate over data.
             for self.batch_id, batch in enumerate(self.dataloaders['train'], 0):
-                self._forward_pass(batch, rollout=1)
                 # self._forward_pass(batch, rollout=1)
+                self._forward_pass_sim(batch, rollout=1)
                 # print("batch['input']", batch['input'].shape) # [32, 32, 20]
                 # print("batch['gt']", batch['gt'].shape) # [32, 32, 20]
                 # print("self.batch['idx']", batch['idx'].shape, batch['idx']) # [32]
@@ -685,8 +685,8 @@ class Trainer(object):
             # Iterate over data.
             for self.batch_id, batch in enumerate(self.dataloaders['val'], 0):
                 with torch.no_grad():
-                    self._forward_pass(batch, rollout=1)
                     # self._forward_pass(batch, rollout=1)
+                    self._forward_pass_sim(batch, rollout=1)
                     self._compute_loss_G()
                     self._compute_loss_D()
                     self._compute_acc()

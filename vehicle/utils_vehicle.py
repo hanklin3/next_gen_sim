@@ -39,7 +39,7 @@ def to_vehicle(x, y, angle_deg, id, speed, road_id, lane_id, lane_index, acceler
     v.safe_size.length, v.safe_size.width = 3.8*factor, 2.0*factor
     v.update_poly_box_and_realworld_4_vertices()
     v.update_safe_poly_box()
-    
+
     return v
 
 def traci_get_vehicle_data():
@@ -95,7 +95,7 @@ def traci_set_vehicle_state(model_output, buff_vid,
         # cos_heading = buff_cos_heading[row_idx][-1]
         angle_deg = cossin2deg(sin_heading, cos_heading)
         angle_deg = tc.INVALID_DOUBLE_VALUE if np.isnan(angle_deg) else angle_deg
-        angle_deg = (90-angle_deg + 90 ) % 360 # NeuralNDE -> sumo: (-angle_deg + 90 ) % 360
+        angle_deg = (90-angle_deg) % 360 # NeuralNDE -> sumo: (-angle_deg + 90 ) % 360
         print('angle_deg', angle_deg)
         # lane_index = int(buff_lane_index[row_idx][0])
         # print('lane_index', lane_index)
