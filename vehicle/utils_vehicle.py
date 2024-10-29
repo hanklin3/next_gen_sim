@@ -26,8 +26,8 @@ def to_vehicle(x, y, angle_deg, id, speed, road_id, lane_id, lane_index, acceler
     v.id = id
     # sumo: north, clockwise
     # NeuralNDE: east, counterclockwise
-    v.speed_heading_deg = angle_deg #sumo -> NeuralNDE: (-angle_deg + 90 ) % 360
-    # v.speed_heading_deg = (-angle_deg + 90 ) % 360 #NeuralNDE -> sumo: (-angle_deg + 90 ) % 360
+    # v.speed_heading_deg = angle_deg #sumo -> NeuralNDE: (-angle_deg + 90 ) % 360
+    v.speed_heading_deg = (-angle_deg + 90 ) % 360 #NeuralNDE -> sumo: (-angle_deg + 90 ) % 360
     v.speed = speed
     v.road_id = road_id
     v.lane_id = lane_id
@@ -94,6 +94,7 @@ def traci_set_vehicle_state(model_output, buff_vid,
         # cos_heading = buff_cos_heading[row_idx][-1]
         angle_deg = cossin2deg(sin_heading, cos_heading)
         angle_deg = tc.INVALID_DOUBLE_VALUE if np.isnan(angle_deg) else angle_deg
+        angle_deg = (90-angle_deg + 90 ) % 360 # NeuralNDE -> sumo: (-angle_deg + 90 ) % 360
         print('angle_deg', angle_deg)
         # lane_index = int(buff_lane_index[row_idx][0])
         # print('lane_index', lane_index)
