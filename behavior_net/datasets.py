@@ -44,8 +44,6 @@ class MTLTrajectoryPredictionDataset(Dataset):
         assert self.sumocfg_files is not None
         self.path_to_traj_data = configs['path_to_traj_data']
 
-
-
         self.is_gui = configs['gui']
         self.sim_resol = configs['sim_resol']
 
@@ -66,7 +64,7 @@ class MTLTrajectoryPredictionDataset(Dataset):
         else:
             raise NotImplementedError( 'Wrong dataset name %s (choose one from [AA_rdbt, rounD,...])' % self.dataset)
         
-        if self.path_to_traj_data or self.path_to_traj_data is not None:
+        if self.path_to_traj_data is not None:
             self.__init__dataset_subfolders__(self.path_to_traj_data, is_train)
         
     def __init__dataset_subfolders__(self, path_to_traj_data, is_train):
@@ -105,7 +103,7 @@ class MTLTrajectoryPredictionDataset(Dataset):
         
     
     def __getitem__(self, idx):
-        if self.path_to_traj_data or self.path_to_traj_data is not None:
+        if self.path_to_traj_data is not None:
             traj_pool = self.__getitem__dataset_subfolders__(idx)
             sumo_cmd = []
         else:

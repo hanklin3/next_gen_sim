@@ -185,13 +185,12 @@ while t < 1000.0:
     print('output_file_path', output_file_path)
     pickle.dump(vehicle_list, open(output_file_path, "wb"))
 
-    if t >= 200.0:
+    if t <= 900.0:
         path = f'./data/training/behavior_net/{experiment}/ring257/train/01/01'
         output_file_path = os.path.join(path,f"{count:06d}.pickle")
         print('output_file_path', output_file_path)
         pickle.dump(vehicle_list, open(output_file_path, "wb"))
-
-    if t < 200.0:
+    else:
         path = f'./data/training/behavior_net/{experiment}/ring257/val/01/01'
         output_file_path = os.path.join(path,f"{count:06d}.pickle")
         print('output_file_path', output_file_path)

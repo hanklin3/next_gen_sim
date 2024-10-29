@@ -3,4 +3,4 @@
 # python3 main_testing.py --experiment-name ring_position_fixed_08-09-24 --config ./configs/ring_inference_positiona.yml
 # python3 main_testing.py --experiment-name ring_position_close_loop_8-20 --config ./configs/ring_inference_position.yml
 # python3 main_testing.py --experiment-name ring_position_test --config ./configs/ring_inference_position.yml
-python3 main_testing.py  --config ./configs/ring_inference_position.yml
+export LIBSUMO=0 && python3 main_testing.py  --config ./configs/ring_inference_position.yml

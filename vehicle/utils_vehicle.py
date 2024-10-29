@@ -96,7 +96,7 @@ def traci_set_vehicle_state(model_output, buff_vid,
         angle_deg = cossin2deg(sin_heading, cos_heading)
         angle_deg = tc.INVALID_DOUBLE_VALUE if np.isnan(angle_deg) else angle_deg
         angle_deg = (90-angle_deg) % 360 # NeuralNDE -> sumo: (-angle_deg + 90 ) % 360
-        print('angle_deg', angle_deg)
+        
         # lane_index = int(buff_lane_index[row_idx][0])
         # print('lane_index', lane_index)
 
@@ -141,7 +141,7 @@ def traci_set_vehicle_state(model_output, buff_vid,
             angle=float(angle_deg)
             # angle=float((-angle_deg + 90 ) % 360)
             # angle=tc.INVALID_DOUBLE_VALUE #(-angle_deg + 90 ) % 360,
-            print('moveToXY', vid, x, y, angle)
+            print(f'moveToXY vid: {str(int(vid))}, x: {x}, y: {y}, angle: {angle}')
             if not is_libsumo:
                 traci.vehicle.moveToXY(
                     str(int(vid)),

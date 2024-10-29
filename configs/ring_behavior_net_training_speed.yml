@@ -1,6 +1,7 @@
 # Training dataset
 dataset: "ring"
 path_to_traj_data: "data/training/behavior_net/ring_all/ring257"  # Trajectory data for training
+# path_to_traj_data: null  # Use simulator for data generation
 
 # Model settings
 model: transformer  # transformer or bn_mlp

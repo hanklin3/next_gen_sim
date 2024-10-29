@@ -55,6 +55,7 @@ class Trainer(object):
         self.m_tokens = configs["max_num_vehicles"]
         self.rolling_step = 1
         self.sim_resol = configs['sim_resol']
+        self.path_to_traj_data = configs['path_to_traj_data']
 
         self.model_output = configs["model_output"]  # position or speed
         assert 'position' in self.model_output or 'speed' in self.model_output
@@ -650,8 +651,10 @@ class Trainer(object):
             
             # Iterate over data.
             for self.batch_id, batch in enumerate(self.dataloaders['train'], 0):
-                # self._forward_pass(batch, rollout=1)
-                self._forward_pass_sim(batch, rollout=1)
+                if self.path_to_traj_data is not None:
+                    self._forward_pass(batch, rollout=1)
+                else:
+                    self._forward_pass_sim(batch, rollout=1)
                 # print("batch['input']", batch['input'].shape) # [32, 32, 20]
                 # print("batch['gt']", batch['gt'].shape) # [32, 32, 20]
                 # print("self.batch['idx']", batch['idx'].shape, batch['idx']) # [32]
@@ -685,8 +688,10 @@ class Trainer(object):
             # Iterate over data.
             for self.batch_id, batch in enumerate(self.dataloaders['val'], 0):
                 with torch.no_grad():
-                    # self._forward_pass(batch, rollout=1)
-                    self._forward_pass_sim(batch, rollout=1)
+                    if self.path_to_traj_data is not None:
+                        self._forward_pass(batch, rollout=1)
+                    else:
+                        self._forward_pass_sim(batch, rollout=1)
                     self._compute_loss_G()
                     self._compute_loss_D()
                     self._compute_acc()
