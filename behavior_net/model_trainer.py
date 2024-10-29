@@ -357,7 +357,8 @@ class Trainer(object):
             mu, std, cos_sin_heading = self.net_G(x_input)
             # HL: why do we need sampling?
             # x_input = self._sampling_from_mu_and_std(mu, std, cos_sin_heading)
-            x_input = x_input * self.rollout_mask  # For future rollouts
+            # import pdb; pdb.set_trace()
+            # x_input = x_input * self.rollout_mask  # For future rollouts, TODO: not working if pred_length != history_length
             # x_input = self.net_safety_mapper.safety_mapper_in_the_training_loop_forward(x_input)
             self.rollout_pos.append(x_input)
             self.G_pred_mean.append(torch.cat([mu, cos_sin_heading], dim=-1))
