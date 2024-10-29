@@ -34,6 +34,7 @@ class MTLTrajectoryPredictionDataset(Dataset):
     """
 
     def __init__(self, configs, is_train):
+        print('dataloader configs', configs)
         self.history_length = configs["history_length"]
         self.pred_length = configs["pred_length"]
         self.max_num_vehicles = configs["max_num_vehicles"]
@@ -90,7 +91,9 @@ class MTLTrajectoryPredictionDataset(Dataset):
 
             self.subfolder_data_proportion = [self.each_subfolder_size[i]/sum(self.each_subfolder_size) for i in range(len(self.each_subfolder_size))]
             self.subsubfolder_data_proportion = [[self.each_subsubfolder_size[i][j]/sum(self.each_subsubfolder_size[i]) for j in range(len(self.each_subsubfolder_size[i]))] for i in range(len(self.each_subsubfolder_size))]
-
+            self.max_length = self.each_subsubfolder_size[-1][-1]
+            print('self.max_length', self.max_length, 'for is_train set: ', self.is_train)
+            assert len(self.traj_dirs) == 1 and len(self.each_subfolder_size) == 1, 'update max_length for multiple subfolders'
         else:
             raise NotImplementedError( 'Wrong dataset name %s (choose one from [AA_rdbt, rounD,...])' % self.dataset)
 
@@ -105,6 +108,7 @@ class MTLTrajectoryPredictionDataset(Dataset):
     def __getitem__(self, idx):
         if self.path_to_traj_data is not None:
             traj_pool = self.__getitem__dataset_subfolders__(idx)
+            
             sumo_cmd = []
         else:
             traj_pool, sumo_cmd = self.__getitem__sumo__(idx)
@@ -137,13 +141,13 @@ class MTLTrajectoryPredictionDataset(Dataset):
             subsubfolder_id = random.choices(range(len(self.traj_dirs[subfolder_id])), weights=self.subsubfolder_data_proportion[subfolder_id])[0]
             datafolder_dirs = self.traj_dirs[subfolder_id][subsubfolder_id]
 
-            idx_start = self.history_length + 1
-            idx_end = len(datafolder_dirs) - self.pred_length - 1
-            idx = random.randint(idx_start, idx_end)
+            # idx_start = self.history_length + 1
+            # idx_end = len(datafolder_dirs) - self.pred_length - 1
+            # idx = random.randint(idx_start, idx_end)
         else:
             raise NotImplementedError( 'Wrong dataset name %s (choose one from [AA_rdbt, rounD,...])' % self.dataset)
 
-        traj_pool = self.fill_in_traj_pool(t0=idx, datafolder_dirs=datafolder_dirs)
+        traj_pool = self.fill_in_traj_pool(t0=idx+self.history_length-1, datafolder_dirs=datafolder_dirs)
 
         return traj_pool
         # buff_lat, buff_lon, buff_cos_heading, buff_sin_heading = traj_pool.flatten_trajectory(
@@ -159,9 +163,9 @@ class MTLTrajectoryPredictionDataset(Dataset):
     
     def __getitem__sumo__(self, idx):
         """
-        # Extract timesteps id-self.history_length to idx+self.pred_length
+        # Extract timesteps idx+self.history_length to idx+self.history_length+self.pred_length
 
-        # idx: the current timestep.
+        # idx: start of the history.
 
         idx: start index of beginning of history.
         history =5, and pred=3
