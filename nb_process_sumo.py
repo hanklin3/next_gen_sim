@@ -95,34 +95,6 @@ miny, maxy = min(sim_df['y']), max(sim_df['y'])
 print('minx, maxx', minx, maxx)
 print('miny, maxy', miny, maxy)
 # %%
-negY = -95.09901674512636 
-posX = 170.48733984863466
-offsetY = negY
-multiplier = (abs(negY))/80
-
-# ring, ring_faster, ring_w_goals
-to_zero = 1.6
-offsetY = -80
-multiplier = 1
-
-if experiment == 'ring_larger':
-    # ring_larger
-    to_zero = 1.6
-    offsetY = -97.09
-    multiplier = 1
-
-if experiment == 'ring_w_goals':
-    to_zero = 0
-    offsetY = 0
-    multiplier = 1
-
-xs = [(float(x)) + to_zero for x in sim_df['x']]
-ys = [(float(y)) + to_zero for y in sim_df['y']]
-
-sim_df['x'] = [(float(x) + to_zero)*multiplier  for x in sim_df['x']]
-sim_df['y'] = [(float(y) + to_zero)*multiplier + offsetY for y in sim_df['y']]
-
-
 
 plt.scatter(sim_df['x'],sim_df['y'])
 plt.axis('equal')
@@ -239,6 +211,7 @@ vxs = [v.location.x for v in vehicle_list]
 vys = [v.location.y for v in vehicle_list]
 plt.plot(vxs, vys, '.')
 plt.axis('equal')
+plt.grid()
 
 # %%
 # check data x y range
