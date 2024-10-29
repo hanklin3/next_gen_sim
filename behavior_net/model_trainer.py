@@ -363,10 +363,10 @@ class Trainer(object):
             self.G_pred_mean.append(torch.cat([mu, cos_sin_heading], dim=-1))
             self.G_pred_std.append(std)
 
-        print('x_input', x_input.shape) # [32, 32, 20]
-        print('self.G_pred_mean', len(self.G_pred_mean), self.G_pred_mean[0].shape) #  1 torch.Size([32, 32, 20])
-        print('self.G_pred_std', len(self.G_pred_std), self.G_pred_std[0].shape) # 1 torch.Size([32, 32, 10])
-        print('self.rollout_mask', self.rollout_mask.shape) # torch.Size([32, 32, 20])
+        # print('x_input', x_input.shape) # [32, 32, 20]
+        # print('self.G_pred_mean', len(self.G_pred_mean), self.G_pred_mean[0].shape) #  1 torch.Size([32, 32, 20])
+        # print('self.G_pred_std', len(self.G_pred_std), self.G_pred_std[0].shape) # 1 torch.Size([32, 32, 10])
+        # print('self.rollout_mask', self.rollout_mask.shape) # torch.Size([32, 32, 20])
         # assert False
 
 
@@ -649,7 +649,7 @@ class Trainer(object):
             
             # Iterate over data.
             for self.batch_id, batch in enumerate(self.dataloaders['train'], 0):
-                self._forward_pass_sim(batch, rollout=1)
+                self._forward_pass(batch, rollout=1)
                 # self._forward_pass(batch, rollout=1)
                 print("batch['input']", batch['input'].shape)
                 print("batch['gt']", batch['gt'].shape)
@@ -684,7 +684,7 @@ class Trainer(object):
             # Iterate over data.
             for self.batch_id, batch in enumerate(self.dataloaders['val'], 0):
                 with torch.no_grad():
-                    self._forward_pass_sim(batch, rollout=1)
+                    self._forward_pass(batch, rollout=1)
                     # self._forward_pass(batch, rollout=1)
                     self._compute_loss_G()
                     self._compute_loss_D()
