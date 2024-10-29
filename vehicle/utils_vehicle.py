@@ -37,8 +37,9 @@ def to_vehicle(x, y, angle_deg, id, speed, road_id, lane_id, lane_index, acceler
     factor = 1
     v.size.length, v.size.width = 3.6*factor, 1.8*factor
     v.safe_size.length, v.safe_size.width = 3.8*factor, 2.0*factor
-    # v.update_poly_box_and_realworld_4_vertices()
-    # v.update_safe_poly_box()
+    v.update_poly_box_and_realworld_4_vertices()
+    v.update_safe_poly_box()
+    
     return v
 
 def traci_get_vehicle_data():

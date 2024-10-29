@@ -406,7 +406,7 @@ class Trainer(object):
         self.G_adv_loss = 0.1*self.gan_loss(D_pred_fake_filtered, True)
 
         self.batch_loss_G = self.reg_loss_position + self.reg_loss_heading + self.G_adv_loss
-        print('self.batch_loss_G', self.batch_loss_G)
+        # print('self.batch_loss_G', self.batch_loss_G)
 
     def _compute_loss_D(self):
 
@@ -652,9 +652,9 @@ class Trainer(object):
             for self.batch_id, batch in enumerate(self.dataloaders['train'], 0):
                 self._forward_pass(batch, rollout=1)
                 # self._forward_pass(batch, rollout=1)
-                print("batch['input']", batch['input'].shape)
-                print("batch['gt']", batch['gt'].shape)
-                print("self.batch['idx']", batch['idx'].shape, batch['idx'])
+                # print("batch['input']", batch['input'].shape) # [32, 32, 20]
+                # print("batch['gt']", batch['gt'].shape) # [32, 32, 20]
+                # print("self.batch['idx']", batch['idx'].shape, batch['idx']) # [32]
                 # assert False
 
                 # update D
