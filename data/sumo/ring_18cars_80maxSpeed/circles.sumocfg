@@ -1,8 +1,0 @@
-<configuration>
-    <input>
-       <net-file value="net.xml"/>
-       
-       <additional-files value="add.xml"/>
-    </input>
-    <logger name="traci" level="ERROR"/>
-</configuration>
