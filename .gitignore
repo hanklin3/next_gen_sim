@@ -4,3 +4,6 @@ data/inference
 results/
 NNDE2/
 
+behavior_net/
+*/__pycache__/*
+
