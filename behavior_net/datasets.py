@@ -106,12 +106,14 @@ class MTLTrajectoryPredictionDataset(Dataset):
         
     
     def __getitem__(self, idx):
+        config_index = np.random.randint(low=0, high=len(self.sumocfg_files))
+        sumocfg_file = self.sumocfg_files[config_index]
+        sumo_cmd = set_sumo(self.is_gui, sumocfg_file, self.max_length, self.sim_resol)
+
         if self.path_to_traj_data is not None:
             traj_pool = self.__getitem__dataset_subfolders__(idx)
-            
-            sumo_cmd = []
         else:
-            traj_pool, sumo_cmd = self.__getitem__sumo__(idx)
+            traj_pool = self.__getitem__sumo__(idx, sumo_cmd)
         
         buff_lat, buff_lon, buff_cos_heading, buff_sin_heading, \
             buff_vid, buff_speed, buff_acc, buff_road_id, buff_lane_id, buff_lane_index, buff_time  = \
@@ -161,7 +163,7 @@ class MTLTrajectoryPredictionDataset(Dataset):
 
         # return data
     
-    def __getitem__sumo__(self, idx):
+    def __getitem__sumo__(self, idx, sumo_cmd):
         """
         # Extract timesteps idx+self.history_length to idx+self.history_length+self.pred_length
 
@@ -172,9 +174,9 @@ class MTLTrajectoryPredictionDataset(Dataset):
         idx = 0,  then current at 4, ends at 7
         
         """
-        config_index = np.random.randint(low=0, high=len(self.sumocfg_files))
-        sumocfg_file = self.sumocfg_files[config_index]
-        sumo_cmd = set_sumo(self.is_gui, sumocfg_file, self.max_length, self.sim_resol)
+        # config_index = np.random.randint(low=0, high=len(self.sumocfg_files))
+        # sumocfg_file = self.sumocfg_files[config_index]
+        # sumo_cmd = set_sumo(self.is_gui, sumocfg_file, self.max_length, self.sim_resol)
 
         # Give label to traci so it can run multiple instances in case dataloader is multi-threaded
         thread_id = np.random.randint(low=0, high=self.max_length)
@@ -217,7 +219,7 @@ class MTLTrajectoryPredictionDataset(Dataset):
         assert len(TIME_BUFF) == self.history_length + self.pred_length, len(self.TIME_BUFF)
         traj_pool = time_buff_to_traj_pool(TIME_BUFF)
 
-        return traj_pool, sumo_cmd
+        return traj_pool #, sumo_cmd
         
         # buff_lat, buff_lon, buff_cos_heading, buff_sin_heading, \
         #     buff_vid, buff_speed, buff_acc, buff_road_id, buff_lane_id, buff_lane_index, buff_time  = \

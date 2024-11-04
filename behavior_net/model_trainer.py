@@ -59,6 +59,7 @@ class Trainer(object):
 
         self.model_output = configs["model_output"]  # position or speed
         assert 'position' in self.model_output or 'speed' in self.model_output
+        self.model_loop = configs["model_loop"]
 
         # initialize networks
         self.net_G = define_G(
@@ -460,12 +461,15 @@ class Trainer(object):
         std_pos = torch.zeros((batch_size, self.m_tokens, 2 * self.pred_length)).to(device)
 
         for i_batch in range(batch_size):
-            outputs = self._forward_pass_sim_one_batch(self.x[i_batch], idx[i_batch], veh_ids[i_batch], 
+            outputs, status = self._forward_pass_sim_one_batch(self.x[i_batch], idx[i_batch], veh_ids[i_batch], 
                                                        sumo_cmd[i_batch].split()
                                                     #    buff_speed_dl=batch['buff_speed'][i_batch].to(device),
                                                     #    buff_lat_dl=batch['buff_lat'][i_batch].to(device),
                                                     #    speeds_list_dl=batch['speed'][i_batch]
                                                        )
+            print(f'status {status}')
+            if status == -1:
+                return status
             mean_pos_cos_sin_heading[i_batch,:,:] = outputs['mean_pos_cos_sin_heading'].to(device)
             std_pos[i_batch,:,:] = outputs['std_pos'].to(device)
             # self.x[i_batch,:,:] = outputs['x_history'].to(device)
@@ -473,6 +477,7 @@ class Trainer(object):
 
         self.G_pred_mean.append(mean_pos_cos_sin_heading)
         self.G_pred_std.append(std_pos)
+        
     
 
     def _forward_pass_sim_one_batch(self, one_input, idx_history, veh_ids, sumo_cmd, debug=True, 
@@ -554,19 +559,29 @@ class Trainer(object):
 
             if 'position' in self.model_output or self.model_output == 'speed':
                 if step - self.history_length + 1 == idx_history :
-                    # assert torch.allclose(one_input, input_matrix, rtol=1e-02, atol=1e-02, equal_nan=True), (
-                    #     one_input, input_matrix, 
+                    # assert torch.allclose(one_input, input_matrix, rtol=1e-01, atol=1e-01, equal_nan=True), (
+                    #     one_input, input_matrix, one_input - input_matrix
                     #     # buff_lat_dl, buff_lat, buff_speed_dl, buff_speed, 
                     #     # speeds_list_dl[0], speeds_list[0]
+                    #     , f"first step not match {step, step - self.history_length + 1, idx_history}"
                     #     )
                     if not torch.allclose(one_input, input_matrix, rtol=1e-01, atol=1e-01, equal_nan=True):
                         print(
-                            (one_input, input_matrix, one_input - input_matrix)
+                            (one_input - input_matrix)
                             # buff_lat_dl, buff_lat, buff_speed_dl, buff_speed, 
                             # speeds_list_dl[0], speeds_list[0]
+                            ,f"first step not match {step, step - self.history_length + 1, idx_history}"
                             )
+                        traci.close()
+                        return None, -1
                     is_first_match = True
-                # assert False, "ITs true in step"
+                    # if torch.allclose(one_input, input_matrix, rtol=1e-01, atol=1e-01, equal_nan=True):
+                    #     print(
+                    #         (one_input, input_matrix, one_input - input_matrix)
+                    #         # buff_lat_dl, buff_lat, buff_speed_dl, buff_speed, 
+                    #         # speeds_list_dl[0], speeds_list[0]
+                    #         )
+                    #     assert False, f"ITs true in step {step, step - self.history_length + 1, idx_history}"
             else:
                 is_first_match = True
 
@@ -630,7 +645,7 @@ class Trainer(object):
              pred_cos_heading_loop], axis=-1)
         outputs['std_pos'][:, :] = torch.cat([pred_lat_std_loop, pred_lon_std_loop], axis=-1)
 
-        return outputs
+        return outputs, is_first_match
 
         
     def train_models(self):
@@ -651,14 +666,17 @@ class Trainer(object):
             
             # Iterate over data.
             for self.batch_id, batch in enumerate(self.dataloaders['train'], 0):
-                if self.path_to_traj_data is not None:
+                if self.model_loop == 'open':
                     self._forward_pass(batch, rollout=1)
                 else:
-                    self._forward_pass_sim(batch, rollout=1)
+                    status = self._forward_pass_sim(batch, rollout=1)
+                    if status == -1:
+                        continue
                 # print("batch['input']", batch['input'].shape) # [32, 32, 20]
                 # print("batch['gt']", batch['gt'].shape) # [32, 32, 20]
                 # print("self.batch['idx']", batch['idx'].shape, batch['idx']) # [32]
                 # assert False
+                print('Updating Training Model.....')
 
                 # update D
                 set_requires_grad(self.net_D, True)
@@ -688,10 +706,12 @@ class Trainer(object):
             # Iterate over data.
             for self.batch_id, batch in enumerate(self.dataloaders['val'], 0):
                 with torch.no_grad():
-                    if self.path_to_traj_data is not None:
+                    if self.model_loop == 'open':
                         self._forward_pass(batch, rollout=1)
                     else:
-                        self._forward_pass_sim(batch, rollout=1)
+                        status = self._forward_pass_sim(batch, rollout=1)
+                        if status == -1:
+                            continue
                     self._compute_loss_G()
                     self._compute_loss_D()
                     self._compute_acc()

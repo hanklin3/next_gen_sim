@@ -1,6 +1,6 @@
 # Training dataset
 dataset: "ring"
-path_to_traj_data: "data/training/behavior_net/ring_all/ring257"  # Trajectory data for training
+path_to_traj_data: "data/training/behavior_net/ring/ring257"  # Trajectory data for training
 # path_to_traj_data: null  # Use simulator for data generation
 
 # Model settings
@@ -10,13 +10,15 @@ pred_length: 5  # number of predicted steps output by the model
 max_num_vehicles: 32  # maximum number of vehicles that can be handled by the model
 model_output: "position_xy"  # use traci.vehicle.moveToXY()
 # model_output: "position_dxdy"  # compute dx,dy, then use traci.vehicle.setSpeed()
+# model_loop: "open" # open-loop prediction in training
+model_loop: "close" # close-loop prediction in training
 
 # Training settings
-batch_size: 32
+batch_size: 1 #32
 lr: 1.0e-4  # learning rate
 lr_decay_step_size: 300  # The number of training epochs to conduct lr decay. lr_scheduler.StepLR is used.
 lr_decay_gamma: 0.3  # lr_scheduler.StepLR is used.
-max_num_epochs: 2500  # maximum training epochs
+max_num_epochs: 2000  # maximum training epochs
 dataloader_num_workers: 8  # num_workers
 
 # Pre-trained safety mapping network
@@ -30,8 +32,8 @@ sim_resol: 0.4  # simulation resolution. unit: s
 gui: False
 sumocfg_files:
   - "./data/sumo/ring/circles.sumocfg"
-  - "./data/sumo/ring_24cars/circles.sumocfg"
-  - "./data/sumo/ring_18cars_0.1acc_1.5dec/circles.sumocfg"
-  # - "./data/sumo/ring_18cars_0.7acc_0.7dec/circles.sumocfg"
-  # - "./data/sumo/ring_18cars_80maxSpeed/circles.sumocfg"
+  # - "./data/sumo/ring_24cars/circles.sumocfg"
+  # - "./data/sumo/ring_18cars_0.1acc_1.5dec/circles.sumocfg"
+  # # - "./data/sumo/ring_18cars_0.7acc_0.7dec/circles.sumocfg" # bad
+  # # - "./data/sumo/ring_18cars_80maxSpeed/circles.sumocfg" # bad
 max_steps: 1000
