@@ -30,7 +30,7 @@ class UncertaintyRegressionLoss(nn.Module):
         super(UncertaintyRegressionLoss, self).__init__()
         self.choice = choice
 
-    def __call__(self, y_pred_mean, y_pred_std, y_true, weight=None):
+    def __call__(self, y_pred_mean, y_pred_std, y_true, weight=None, goal_indices=None, goal_weight=2.0):
 
         if self.choice == 'mse':
             diff_map_mean = (y_pred_mean - y_true)**2
@@ -39,7 +39,22 @@ class UncertaintyRegressionLoss(nn.Module):
         elif self.choice == 'mae':
             diff_map_mean = torch.abs(y_pred_mean - y_true)
             diff_map_std = torch.abs(torch.abs(y_pred_mean - y_true) - y_pred_std)
-            diff_map = diff_map_mean + diff_map_std
+            diff_goal_mean = 0.0
+            if goal_indices is not None:
+                # goal_indices is the index to upweight the goal position, eg. [-1, -5, -10]
+                assert y_pred_mean.dim() == 3
+                # assign y_pred_mean to 0 except at the index of goal_indices
+                y_pred_mean_zeroed = torch.zeros_like(y_pred_mean)
+                y_pred_mean_zeroed[:, :, goal_indices] = y_pred_mean[:, :, goal_indices]
+                y_true_zeroed = torch.zeros_like(y_true)
+                y_true_zeroed[:, :, goal_indices] = y_true[:, :, goal_indices]  
+                diff_goal_mean = torch.abs(y_pred_mean_zeroed- y_true_zeroed)
+            else:
+                goal_weight = 0.0
+            # print('diff_goal_mean', diff_goal_mean.shape) # [32, 32, 2*35]
+            # print('diff_map_mean', diff_map_mean.shape) # [32, 32, 70]
+            # print('diff_map_std', diff_map_std.shape) # [32, 32, 70]
+            diff_map = diff_map_mean + diff_map_std + goal_weight * diff_goal_mean
         elif self.choice == 'cos_sin_heading_mae':
             # y_pred_mean, y_true [32, 32, 10] concat sin and cos heading
             diff_map = torch.abs(y_pred_mean - y_true)

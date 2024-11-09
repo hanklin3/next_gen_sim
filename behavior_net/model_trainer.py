@@ -56,6 +56,9 @@ class Trainer(object):
         self.rolling_step = 1
         self.sim_resol = configs['sim_resol']
         self.path_to_traj_data = configs['path_to_traj_data']
+        self.goal_indices = configs["goal_indices"]
+        self.goal_weight = configs["goal_weight"]
+        self.experiment_name = configs["experiment_name"]
 
         self.model_output = configs["model_output"]  # position or speed
         assert 'position' in self.model_output or 'speed' in self.model_output
@@ -195,6 +198,7 @@ class Trainer(object):
             m_batches = len(self.dataloaders['val'])
 
         if np.mod(self.batch_id, 100) == 1:
+            print('Experiment Name: ', self.experiment_name)
             print('Is_training: %s. epoch [%d,%d], batch [%d,%d], reg_loss_pos: %.5f, reg_loss_heading: %.5f, '
                   'G_adv_loss: %.5f, D_adv_loss: %.5f, running_acc_pos: %.5f, running_acc_heading: %.5f'
                   % (self.is_training, self.epoch_id, self.max_num_epochs-1, self.batch_id, m_batches,
@@ -212,6 +216,7 @@ class Trainer(object):
             self.train_epoch_loss_G_reg_pos = np.mean(self.running_loss_G_reg_pos).item()
             self.train_epoch_loss_G_reg_heading = np.mean(self.running_loss_G_reg_heading).item()
             self.train_epoch_loss_G_adv = np.mean(self.running_loss_G_adv).item()
+            print('Experiment Name: ', self.experiment_name)
             print('Training, Epoch %d / %d, epoch_loss_G= %.5f, epoch_loss_D= %.5f, epoch_acc_pos= %.5f, epoch_acc_heading= %.5f' %
                   (self.epoch_id, self.max_num_epochs-1,
                    self.train_epoch_loss_G, self.train_epoch_loss_D, self.train_epoch_acc_pos, self.train_epoch_acc_heading))
@@ -397,18 +402,23 @@ class Trainer(object):
         gt_pos, mask_pos = self.gt[:, :, :int(self.output_dim / 2)], self.mask[:, :, :int(self.output_dim / 2)]
         gt_cos_sin_heading, mask_cos_sin_heading = self.gt[:, :, int(self.output_dim / 2):], self.mask[:, :, int(self.output_dim / 2):]
 
-        self.reg_loss_position = self.regression_loss_func_pos(G_pred_pos_at_step0, G_pred_std_pos_at_step0, gt_pos, weight=mask_pos)
+        self.reg_loss_position = self.regression_loss_func_pos(G_pred_pos_at_step0, G_pred_std_pos_at_step0, gt_pos, weight=mask_pos, goal_indices=self.goal_indices, goal_weight=self.goal_weight)
         self.reg_loss_heading = 5 * self.regression_loss_func_heading(y_pred_mean=G_pred_cos_sin_heading_at_step0, y_pred_std=None, y_true=gt_cos_sin_heading, weight=mask_cos_sin_heading)
 
         D_pred_fake = self.net_D(self.G_pred_mean[0])
+        # print('D_pred_fake', D_pred_fake.shape, D_pred_fake.sum())
         # Filter out ghost vehicles
         # Reformat the size into num x n, where num = bs * m_token - ghost vehicles (also for those have missing values in gt)
-        ghost_vehicles_mask = (torch.sum(self.mask, dim=-1) == 20).flatten()  # bs * m_token.
+        # print('self.mask', self.mask.shape, self.mask.sum())
+        ghost_vehicles_mask = (torch.sum(self.mask, dim=-1) == 4 * self.pred_length).flatten()  # bs * m_token.
         D_pred_fake_filtered = (D_pred_fake.flatten())[ghost_vehicles_mask]
+        # print('D_pred_fake_filtered', D_pred_fake_filtered.shape, D_pred_fake_filtered.sum())
         self.G_adv_loss = 0.1*self.gan_loss(D_pred_fake_filtered, True)
-
+        # print('self.G_adv_loss', self.G_adv_loss.shape, self.G_adv_loss.sum())
+        
         self.batch_loss_G = self.reg_loss_position + self.reg_loss_heading + self.G_adv_loss
-        # print('self.batch_loss_G', self.batch_loss_G)
+        # print('self.batch_loss_G', self.batch_loss_G.shape, self.batch_loss_G.sum())
+        
 
     def _compute_loss_D(self):
 
@@ -416,10 +426,10 @@ class Trainer(object):
         D_pred_real = self.net_D(self.gt.detach())
 
         # Filter out ghost vehicles
-        pred_fake_ghost_vehicles_mask = (torch.sum(self.mask, dim=-1) == 20).flatten()  # bs * m_token.
+        pred_fake_ghost_vehicles_mask = (torch.sum(self.mask, dim=-1) == 4 * self.pred_length).flatten()  # bs * m_token.
         D_pred_fake_filtered = (D_pred_fake.flatten())[pred_fake_ghost_vehicles_mask]
 
-        pred_real_ghost_vehicles_mask = (torch.sum(self.mask, dim=-1) == 20).flatten()  # bs * m_token.
+        pred_real_ghost_vehicles_mask = (torch.sum(self.mask, dim=-1) == 4 * self.pred_length).flatten()  # bs * m_token.
         D_pred_real_filtered = (D_pred_real.flatten())[pred_real_ghost_vehicles_mask]
 
         D_adv_loss_fake = self.gan_loss(D_pred_fake_filtered, False)
@@ -480,7 +490,7 @@ class Trainer(object):
         
     
 
-    def _forward_pass_sim_one_batch(self, one_input, idx_history, veh_ids, sumo_cmd, debug=True, 
+    def _forward_pass_sim_one_batch(self, one_input, idx_history, veh_ids, sumo_cmd, debug=False, 
                                     buff_speed_dl=None, buff_lat_dl=None, speeds_list_dl=None):
     
         outputs = {}
@@ -637,7 +647,7 @@ class Trainer(object):
 
         traci.close()
 
-        assert idx_output == 5, idx_output
+        assert idx_output == self.pred_length, f"idx_output {idx_output} != pred_length {self.pred_length}"
         assert is_first_match, "Training: Input history didn't match the dataloader"
 
         outputs['mean_pos_cos_sin_heading'][:, :] = torch.cat(
@@ -671,12 +681,13 @@ class Trainer(object):
                 else:
                     status = self._forward_pass_sim(batch, rollout=1)
                     if status == -1:
+                        print('Skipping this batch.....')
                         continue
                 # print("batch['input']", batch['input'].shape) # [32, 32, 20]
                 # print("batch['gt']", batch['gt'].shape) # [32, 32, 20]
                 # print("self.batch['idx']", batch['idx'].shape, batch['idx']) # [32]
                 # assert False
-                print('Updating Training Model.....')
+                print('Updating Model Losses...')
 
                 # update D
                 set_requires_grad(self.net_D, True)
@@ -720,7 +731,12 @@ class Trainer(object):
 
             ########### Update_Checkpoints ###########
             ##########################################
-            self._update_checkpoints()
+            if not torch.isnan(self.batch_loss_G):
+                self._update_checkpoints()
+            else:
+                print(f'NaN detected in batch_loss_G {self.batch_loss_G}, self.reg_loss_position {self.reg_loss_position}' 
+                      f'self.reg_loss_heading {self.reg_loss_heading}, self.G_adv_loss {self.G_adv_loss}. '
+                      'Skipping this checkpoint.....')
 
             ########### Update_LR Scheduler ##########
             ##########################################

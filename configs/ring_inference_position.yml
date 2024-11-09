@@ -24,8 +24,8 @@ dataset: "ring"
 history_length: 5  # number of historical steps input to the model
 pred_length: 5  # number of predicted steps output by the model
 m_tokens: 32  # maximum number of vehicles that can be handled by the model
-model_output: "position_xy"  # use traci.vehicle.moveToXY()
-# model_output: "position_dxdy"  # compute dx,dy, then use traci.vehicle.setSpeed()
+# model_output: "position_xy"  # use traci.vehicle.moveToXY()
+model_output: "position_dxdy"  # compute dx,dy, then use traci.vehicle.setSpeed()
 # model_output: "no_set"  # not set traci, sumo log data
 use_gt_prediction: False
 # use_gt_prediction: True
@@ -44,14 +44,22 @@ use_gt_prediction: False
 # behavior_model_ckpt_dir: "./results/training/behavior_net/ring_position_close_moveToXY_angle_arctan2_9-06/checkpoints/last_ckpt.pt"
 # behavior_model_ckpt_dir: "./results/training/behavior_net/ring_position_close_multi_configs_9-05/checkpoints/last_ckpt.pt"
 # behavior_model_ckpt_dir: "./results/training/behavior_net/ring_position_close_multiConf_libsumo_9-16/checkpoints/last_ckpt.pt"
-# behavior_model_ckpt_dir: "./results/training/behavior_net/ring_position_close_setSpeedMode_9-18/checkpoints/last_ckpt.pt"
-behavior_model_ckpt_dir: "./results/training/behavior_net/ring_position_close_setSpeedMode_9-18__refine_angle_9-22/checkpoints/last_ckpt.pt"
+behavior_model_ckpt_dir: "./results/training/behavior_net/ring_position_close_setSpeedMode_9-18/checkpoints/last_ckpt.pt" # good
+# behavior_model_ckpt_dir: "./results/training/behavior_net/ring_position_close_setSpeedMode_9-18__refine_angle_9-22/checkpoints/last_ckpt.pt" # good
 # behavior_model_ckpt_dir: "./results/training/behavior_net/ring_position_close_setSpeedMode_9-18__refine_angle_9-22_dxdy/checkpoints/last_ckpt.pt"
 # behavior_model_ckpt_dir: "./results/training/behavior_net/ring_position_close_setSpeedMode_9-18__refine_fix_angle_9-22/checkpoints/last_ckpt.pt"
 # behavior_model_ckpt_dir: "./results/training/behavior_net/ring_position_close_moveToXY_angle_9-24/checkpoints/last_ckpt.pt"
-behavior_model_ckpt_dir: "./results/training/behavior_net/ring_position_dxdy_test/checkpoints/last_ckpt.pt"
+behavior_model_ckpt_dir: "./results/training/behavior_net/ring_position_test/checkpoints/last_ckpt.pt"
+# behavior_model_ckpt_dir: "./results/training/behavior_net/ring_pos_open_pred5_10-29_load_data/checkpoints/last_ckpt.pt"
 # behavior_model_ckpt_dir: "./results/training/behavior_net/ring_position_close_moveToXY_angleConvert_10-28/checkpoints/last_ckpt.pt"
 # behavior_model_ckpt_dir: "./results/training/behavior_net/ring_position_close_moveToXY_angleConvert_10-29/checkpoints/last_ckpt.pt"
+# behavior_model_ckpt_dir: "./results/training/behavior_net/ring_pos_open_dxdy_pred5_10-29/checkpoints/last_ckpt.pt"
+# behavior_model_ckpt_dir: "./results/training/behavior_net/ring_pos_open_dxdy_pred5_10-29_refined_pos_close_xy_11-3/checkpoints/last_ckpt.pt"
+# behavior_model_ckpt_dir: "./results/training/behavior_net/0006_local_ring_pos_open_dataLoad_11-04/checkpoints/last_ckpt.pt"
+# behavior_model_ckpt_dir: "./results/training/behavior_net/0007_local_0006__refine_pos_close_dxdy_setSpeed_11-04/checkpoints/last_ckpt.pt"
+behavior_model_ckpt_dir: "./results/training/behavior_net/0007-2_local_0007__refine_pos_close_xy_moveToXY_cossin2deg_11-05/checkpoints/last_ckpt.pt"
+# behavior_model_ckpt_dir: "./results/training/behavior_net/0008_pos_open_pred35_11-04/checkpoints/last_ckpt.pt"
+# behavior_model_ckpt_dir: "./results/training/behavior_net/0009_pos_open_pred35_goals_11-04/checkpoints/last_ckpt.pt"
 safety_mapper_ckpt_dir: "data/inference/rounD/safety_mapper_ckpt/safety_mapping_net.pt"
 
 # Whether use neural safety mapping module

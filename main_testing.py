@@ -206,7 +206,7 @@ while step < step_max:
 
     ## Record prediction to dataframe for metrics later
     rows, cols = buff_vid.shape
-    assert pred_lat.shape == buff_vid.shape
+    assert pred_lat.shape[0] == buff_vid.shape[0], f'pred_lat.shape {pred_lat.shape} != buff_vid.shape {buff_vid.shape}'
     for irow in range(rows):
         # for icol in range(cols):
             icol = 0

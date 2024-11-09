@@ -6,15 +6,17 @@ path_to_traj_data: "data/training/behavior_net/ring/ring257"  # Trajectory data 
 # Model settings
 model: transformer  # transformer or bn_mlp
 history_length: 5  # number of historical steps input to the model
-pred_length: 5  # number of predicted steps output by the model
+pred_length: 35  # number of predicted steps output by the model
 max_num_vehicles: 32  # maximum number of vehicles that can be handled by the model
-model_output: "position_xy"  # use traci.vehicle.moveToXY()
-# model_output: "position_dxdy"  # compute dx,dy, then use traci.vehicle.setSpeed()
-# model_loop: "open" # open-loop prediction in training
-model_loop: "close" # close-loop prediction in training
+# model_output: "position_xy"  # use traci.vehicle.moveToXY()
+model_output: "position_dxdy"  # compute dx,dy, then use traci.vehicle.setSpeed()
+model_loop: "open" # open-loop prediction in training
+# model_loop: "close" # close-loop prediction in training
+goal_indices: [-1, -10, -20]  # weight the goal position for the loss function
+goal_weight: 2.0
 
 # Training settings
-batch_size: 1 #32
+batch_size: 32
 lr: 1.0e-4  # learning rate
 lr_decay_step_size: 300  # The number of training epochs to conduct lr decay. lr_scheduler.StepLR is used.
 lr_decay_gamma: 0.3  # lr_scheduler.StepLR is used.

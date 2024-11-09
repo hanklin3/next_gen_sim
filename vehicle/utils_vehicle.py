@@ -124,8 +124,8 @@ def traci_set_vehicle_state(model_output, buff_vid,
 
             # assert speed[0] > 0, (speed, pred_speed[row_idx,:], pred_speed[row_idx,:])
             # assert not np.isnan(float(speed[0])), float(speed[0])
-
-            # print('position_dxdy', str(int(vid)), float(speed[0]))
+            if np.isnan(float(speed[0])):
+                print('position_dxdy', str(int(vid)), float(speed[0]))
 
             traci.vehicle.setSpeed(str(int(vid)), float(speed[0]))
             # traci.setPreviousSpeed(str(int(vid)), speed[0])
@@ -142,7 +142,8 @@ def traci_set_vehicle_state(model_output, buff_vid,
             angle=float(angle_deg)
             # angle=float((-angle_deg + 90 ) % 360)
             # angle=tc.INVALID_DOUBLE_VALUE #(-angle_deg + 90 ) % 360,
-            # print(f'moveToXY vid: {str(int(vid))}, x: {x}, y: {y}, angle: {angle}')
+            if np.isnan(x) or np.isnan(y) or np.isnan(angle):
+                print(f'moveToXY vid: {str(int(vid))}, x: {x}, y: {y}, angle: {angle}')
             if not is_libsumo:
                 traci.vehicle.moveToXY(
                     str(int(vid)),
