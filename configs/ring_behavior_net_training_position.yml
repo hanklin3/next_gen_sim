@@ -12,8 +12,10 @@ max_num_vehicles: 32  # maximum number of vehicles that can be handled by the mo
 model_output: "position_dxdy"  # compute dx,dy, then use traci.vehicle.setSpeed()
 model_loop: "open" # open-loop prediction in training
 # model_loop: "close" # close-loop prediction in training
-goal_indices: [-1, -10, -20]  # weight the goal position for the loss function
-goal_weight: 2.0
+# goal_indices: [-1, -10, -20]  # weight the goal position for the loss function
+# goal_weight: 2.0
+goal_indices: null  # weight the goal position for the loss function
+goal_weight: 0.0
 
 # Training settings
 batch_size: 32

@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -n 4 --gres=gpu:volta:1 -o results/training/behavior_net/ring_position_close_loop.log-%j
+#SBATCH -n 4 --gres=gpu:volta:1 -o results/training/behavior_net/0011_pos_open_ring_traci_pred5_saftey_model_11-18.log-%j
 
 source /etc/profile
 source activate NNDE
