@@ -263,3 +263,83 @@ plt.imshow(np.asarray(img3))
 img = np.zeros(img_size)
 # plt.imsave(os.path.join(base_dir, 'ring-sim-remove-vehicle-area-map.jpg'), img)
 # %%
+
+t=6
+vehicle_list = get_veh_list(t)
+vxs = [v.location.x for v in vehicle_list]
+vys = [v.location.y for v in vehicle_list]
+plt.plot(vxs, vys, '.')
+plt.axis('equal')
+
+# %%
+# img_size = (round(maxx)+1, round(maxy)+1, 3)
+img_size = (80,80, 3)
+img_resize = (200, 200)
+# img_resize = img_size
+img = np.zeros(img_size)
+# for x, y in zip(sim_df['x'], sim_df['y']):
+for x, y in zip(xs, ys):
+    img[int(x+to_zero), int(y+to_zero), :] = 255
+img = img.astype(np.uint8)
+img = cv2.resize(img, img_resize)
+ksize = (15, 15) 
+# Using cv2.blur() method  
+img = cv2.blur(img, ksize)  
+img[img > 0] = 255
+
+plt.imshow(img)
+print(img.min(), img.max(), np.unique(img))
+
+# %%
+base_dir = './data/inference/ring/'
+save_img_path = os.path.join(base_dir,'drivablemap', 'ring-drivablemap.jpg')
+plt.imsave(save_img_path, img)
+save_img_path = os.path.join(base_dir,'basemap', 'ring-official-map.jpg')
+plt.imsave(save_img_path, img)
+for filename in ['circle_1_q-map.jpg', 'circle_2_q-map.jpg', 'circle_3_q-map.jpg', 'circle_4_q-map.jpg']:
+    save_img_path = os.path.join(base_dir,'ROIs-map','circle', filename)
+    plt.imsave(save_img_path, img)
+
+for filename in ['circle_inner_lane-map.jpg','circle_outer_lane-map.jpg'
+                 ]:
+    save_img_path = os.path.join(base_dir,'ROIs-map','at-circle-lane', filename)
+    plt.imsave(save_img_path, img)
+print('save_img_path', save_img_path)
+
+# %%
+json_text = f'"tl": [{minx}, {maxy}], "bl": [{minx}, {miny}], "tr": [{maxx}, {maxy}], "br": [{maxx}, {miny}]'
+json_text = '{' + json_text + '}'
+print(json_text)
+buf=10
+json_text = f'"tl": [{minx-buf}, {maxy+buf}], "bl": [{minx-buf}, {miny+buf}], "tr": [{maxx+buf}, {maxy+buf}], "br": [{maxx+buf}, {miny-buf}]'
+json_text = '{' + json_text + '}'
+print(json_text)
+json_text = f'"tl": [{0.0}, {img_size[1]}], "bl": [{0.0}, {0.0}], "tr": [{img_size[0]}, {img_size[1]}], "br": [{img_size[0]}, {0.0}]'
+json_text = '{' + json_text + '}'
+print(json_text)
+
+# %%
+empty_img = np.zeros(img_resize)
+save_img_path = os.path.join(base_dir,'ROIs-map', 'ring-sim-remove-vehicle-area-map.jpg')
+plt.imsave(save_img_path, empty_img)
+print('save_img_path', save_img_path)
+
+for filename in ['exit_n-map.jpg','exit_e-map.jpg', 'exit_s-map.jpg',
+                 'exit_w-map.jpg', 'exit_n_rightturn-map.jpg', 
+                 'exit_s_rightturn-map.jpg'
+                 ]:
+    save_img_path = os.path.join(base_dir,'ROIs-map','exit', filename)
+    plt.imsave(save_img_path, empty_img)
+for filename in ['entrance_n_1-map.jpg','entrance_n_2-map.jpg', 'entrance_n_rightturn-map.jpg',
+                 'entrance_e_1-map.jpg', 'entrance_e_2-map.jpg', 
+                 'entrance_s_1-map.jpg', 'entrance_s_2-map.jpg',
+                 'entrance_s_rightturn-map.jpg', 
+                 'entrance_w_1-map.jpg', 'entrance_w_2-map.jpg'
+                 ]:
+    save_img_path = os.path.join(base_dir,'ROIs-map','entrance', filename)
+    plt.imsave(save_img_path, empty_img)
+for filename in ['yielding_n-map.jpg','yielding_e-map.jpg', 'yielding_s-map.jpg',
+                 'yielding_w-map.jpg'
+                 ]:
+    save_img_path = os.path.join(base_dir,'ROIs-map','yielding-area', filename)
+    plt.imsave(save_img_path, empty_img)

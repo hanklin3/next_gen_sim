@@ -71,9 +71,9 @@ class Trainer(object):
         self.net_D = define_D(input_dim=self.output_dim).to(device)
 
         # initialize safety mapping networks to involve it in the training loop
-        # self.net_safety_mapper = define_safety_mapper(configs["safety_mapper_ckpt_dir"], self.m_tokens).to(device)
-        # self.net_safety_mapper.eval()
-        # set_requires_grad(self.net_safety_mapper, requires_grad=False)
+        self.net_safety_mapper = define_safety_mapper(configs["safety_mapper_ckpt_dir"], self.m_tokens).to(device)
+        self.net_safety_mapper.eval()
+        set_requires_grad(self.net_safety_mapper, requires_grad=False)
 
         # Learning rate
         self.lr = configs["lr"]
@@ -366,7 +366,7 @@ class Trainer(object):
             # x_input = self._sampling_from_mu_and_std(mu, std, cos_sin_heading)
             # import pdb; pdb.set_trace()
             # x_input = x_input * self.rollout_mask  # For future rollouts, TODO: not working if pred_length != history_length
-            # x_input = self.net_safety_mapper.safety_mapper_in_the_training_loop_forward(x_input)
+            x_input = self.net_safety_mapper.safety_mapper_in_the_training_loop_forward(x_input)
             self.rollout_pos.append(x_input)
             self.G_pred_mean.append(torch.cat([mu, cos_sin_heading], dim=-1))
             self.G_pred_std.append(std)
