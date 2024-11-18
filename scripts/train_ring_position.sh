@@ -20,4 +20,8 @@ export LIBSUMO=0
 
 # export LIBSUMO=0 && python3 main_training.py --config ./configs/ring_behavior_net_training_position.yml --experiment-name 0008-2__0008_refine_pos_close_pred35_xy_moveToXY_cossin2deg_11-05
 
-python3 main_training.py --experiment-name 0009-2__0009_refine_pos_close_pred35_goals_moveToXY_cossin2deg_11-05
+# python3 main_training.py --experiment-name 0009-2__0009_refine_pos_close_pred35_goals_moveToXY_cossin2deg_11-05
+
+# python3 main_training.py --experiment-name 0010_pos_open_pred5_saftey_module_11-17
+
+python3 main_training.py --experiment-name 0011_pos_open_ring_traci_pred5_saftey_model_11-18

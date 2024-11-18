@@ -310,7 +310,7 @@ print('save_img_path', save_img_path)
 json_text = f'"tl": [{minx}, {maxy}], "bl": [{minx}, {miny}], "tr": [{maxx}, {maxy}], "br": [{maxx}, {miny}]'
 json_text = '{' + json_text + '}'
 print(json_text)
-buf=10
+buf=1
 json_text = f'"tl": [{minx-buf}, {maxy+buf}], "bl": [{minx-buf}, {miny+buf}], "tr": [{maxx+buf}, {maxy+buf}], "br": [{maxx+buf}, {miny-buf}]'
 json_text = '{' + json_text + '}'
 print(json_text)

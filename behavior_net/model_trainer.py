@@ -687,7 +687,7 @@ class Trainer(object):
                 # print("batch['gt']", batch['gt'].shape) # [32, 32, 20]
                 # print("self.batch['idx']", batch['idx'].shape, batch['idx']) # [32]
                 # assert False
-                print('Updating Model Losses...')
+                # print('Updating Model Losses...')
 
                 # update D
                 set_requires_grad(self.net_D, True)

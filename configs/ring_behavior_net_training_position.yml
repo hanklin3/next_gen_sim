@@ -1,6 +1,6 @@
 # Training dataset
 dataset: "ring"
-path_to_traj_data: "data/training/behavior_net/ring/ring257"  # Trajectory data for training
+path_to_traj_data: "data/training/behavior_net/ring_traci/ring257"  # Trajectory data for training
 # path_to_traj_data: null  # Use simulator for data generation
 
 # Model settings
@@ -38,4 +38,4 @@ sumocfg_files:
   # - "./data/sumo/ring_18cars_0.1acc_1.5dec/circles.sumocfg"
   # # - "./data/sumo/ring_18cars_0.7acc_0.7dec/circles.sumocfg" # bad
   # # - "./data/sumo/ring_18cars_80maxSpeed/circles.sumocfg" # bad
-max_steps: 1000
+max_steps: 300 #1000

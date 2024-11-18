@@ -60,6 +60,7 @@ behavior_model_ckpt_dir: "./results/training/behavior_net/ring_position_test/che
 behavior_model_ckpt_dir: "./results/training/behavior_net/0007-2_local_0007__refine_pos_close_xy_moveToXY_cossin2deg_11-05/checkpoints/last_ckpt.pt"
 # behavior_model_ckpt_dir: "./results/training/behavior_net/0008_pos_open_pred35_11-04/checkpoints/last_ckpt.pt"
 # behavior_model_ckpt_dir: "./results/training/behavior_net/0009_pos_open_pred35_goals_11-04/checkpoints/last_ckpt.pt"
+behavior_model_ckpt_dir: "./results/training/behavior_net/0010_pos_open_pred5_saftey_module_11-17/checkpoints/last_ckpt.pt"
 safety_mapper_ckpt_dir: "data/inference/rounD/safety_mapper_ckpt/safety_mapping_net.pt"
 
 # Whether use neural safety mapping module
@@ -72,7 +73,7 @@ use_conflict_critic_module: False
 sim_resol: 0.4  # simulation resolution. unit: s
 rolling_step: 1  # How many pred steps to execute during autoregression.
 interpolate_flag: False # Interpolate the trajectory to a finer time resolution for better visualization.
-intep_steps: 3  # Number of steps to inter between steps. E.g., resolution is 0.4s intep_steps=3 then new resolution is 0.1s
+intep_steps: 1 #3  # Number of steps to inter between steps. E.g., resolution is 0.4s intep_steps=3 then new resolution is 0.1s
 
 # Simulation metrics dependencies
 ROI_map_dir: "data/inference/ring/ROIs-map"  # Used for metric analysis.
@@ -110,5 +111,5 @@ sumocfg_file_name: "./data/sumo/ring/circles.sumocfg"
 
 # sumocfg_file_name: "./data/sumo/ring_18cars_0.7acc_0.7dec/circles.sumocfg"
 # sumocfg_file_name: "./data/sumo/ring_18cars_80maxSpeed/circles.sumocfg"
-max_steps: 1000 #1000
+max_steps: 300 #1000
 step_length: 0.4

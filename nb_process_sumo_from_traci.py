@@ -28,10 +28,10 @@ base_dir = './data/sumo/'
 assert os.path.exists(base_dir)
 
 # experiment='ring_faster'
-experiment='ring'
+# experiment='ring'
 # experiment='ring_larger'
 # experiment='ring_w_goals'
-
+experiment='ring_traci'
 # %%
 config = './configs/ring_behavior_net_training_position.yml'
 
@@ -51,11 +51,16 @@ max_steps = configs['max_steps']
 history_length = configs['history_length']
 sim_resol = configs['sim_resol']
 step = 0
-dataf = []
 
+path_to_traj_data = configs['path_to_traj_data']
+assert path_to_traj_data.split('/')[-2] == experiment, f"{path_to_traj_data}, {experiment}"
+
+print('max_steps', max_steps)
+print('experiment', experiment)
 # %%
 traci.start(sumo_cmd)
 
+dataf = []
 while step < max_steps:
     traci.simulationStep() # run 1 step for sim1
 
@@ -76,32 +81,17 @@ DF_HEADER = ['Simulation No', 'Time', 'Car', 'x', 'y', 'Speed', 'Heading',
              'Acceleration', 'Road ID', 'Lane ID', 'Lane Index']
 sim_df = pd.DataFrame(arr,
                        columns=DF_HEADER)
-
 # %%
-# plot_save_path = f'./data/sumo/{experiment}/plots'
-# t = 0.
-# count = 0
-# while t < np.max(sim_df['time']):
-#     t = round(t, 2)
-#     init_df = sim_df[sim_df['time']==t]
-#     vxs = init_df['x'].tolist()
-#     vys = init_df['y'].tolist()
-#     ids = init_df['id'].tolist()
-#     plt.figure()
-#     plt.plot(vxs, vys, '.')
-#     for iid in range(len(ids)):
-#         plt.text(vxs[iid], vys[iid], ids[iid])
-#     plt.axis('equal')
-#     # plt.savefig(f'{plot_save_path}/{count:02d}.jpg')
-#     if count % 10 == 0:
-#         print('Saved to', f'{plot_save_path}/{count:02d}.jpg')
-
-#     count += 1
-#     t += 0.4
-
-#     if count > 5:
-#         break
-
+sim_df['Time'] = sim_df['Time'].astype(float)
+sim_df['x'] = sim_df['x'].astype(float)
+sim_df['y'] = sim_df['y'].astype(float)
+sim_df['Car'] = sim_df['Car'].astype(int)
+sim_df['Heading'] = sim_df['Heading'].astype(float)
+sim_df['Speed'] = sim_df['Speed'].astype(float)
+sim_df['Acceleration'] = sim_df['Acceleration'].astype(float)
+sim_df['Road ID'] = sim_df['Road ID'] # str
+sim_df['Lane ID'] = sim_df['Lane ID'] # str
+sim_df['Lane Index'] = sim_df['Lane Index'].astype(int)
 
 minx, maxx = min(sim_df['x']), max(sim_df['x'])
 miny, maxy = min(sim_df['y']), max(sim_df['y'])
@@ -109,6 +99,40 @@ print('minx, maxx', minx, maxx)
 print('miny, maxy', miny, maxy)
 
 sim_df
+
+# %%
+times = np.unique(sim_df['Time'])
+plot_save_path = f'./data/sumo/{experiment}/plots'
+t = 0.
+count = 0
+# for index, row in sim_df.iterrows():
+#     t = row['Time']
+for t in times:
+    
+    init_df = sim_df[sim_df['Time']==t]
+    vxs = init_df['x'].tolist()
+    vys = init_df['y'].tolist()
+    ids = init_df['Car'].tolist()
+    if count % 5 == 0:
+        print('t', t, 'count', count)
+        plt.figure()
+        plt.plot(vxs, vys, '.')
+        # plt.scatter(vxs, vys)
+        for iid in range(len(ids)):
+            plt.text(vxs[iid], vys[iid], ids[iid])
+        plt.axis('equal')
+        plt.grid()
+        # plt.xlim(0, 75)
+        # plt.ylim(0, 75)
+        # plt.savefig(f'{plot_save_path}/{count:02d}.jpg')
+        # if count % 10 == 0:
+        #     print('Saved to', f'{plot_save_path}/{count:02d}.jpg')
+
+    count += 1
+
+    if count > 100:
+        break
+
 # %%
 
 plt.scatter(sim_df['x'],sim_df['y'])
@@ -121,7 +145,6 @@ print('miny, maxy', miny, maxy)
 print('Car id', np.unique(sim_df['Car']))
 
 print('max time', max(sim_df['Time']))
-
 
 # %%
 
@@ -154,7 +177,7 @@ while t < max_steps:
     print('output_file_path', output_file_path)
     pickle.dump(vehicle_list, open(output_file_path, "wb"))
 
-    if t <= 900.0:
+    if t <= 250: #900.0:
         path = f'./data/training/behavior_net/{experiment}/ring257/train/01/01'
         output_file_path = os.path.join(path,f"{count:06d}.pickle")
         print('output_file_path', output_file_path)
