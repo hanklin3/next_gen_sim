@@ -341,7 +341,7 @@ class Trainer(object):
         lat = lat_mean + epsilons_lat * lat_std
         lon = lon_mean + epsilons_lon * lon_std
 
-        return torch.cat([lat, lon, heading_mu], dim=-1)
+        return torch.cat([lat.detach(), lon.detach(), heading_mu.detach()], dim=-1)
 
     def _forward_pass(self, batch, rollout=5):
         self.batch = batch
@@ -363,9 +363,9 @@ class Trainer(object):
         for _ in range(rollout):
             mu, std, cos_sin_heading = self.net_G(x_input)
             # HL: why do we need sampling?
-            # x_input = self._sampling_from_mu_and_std(mu, std, cos_sin_heading)
+            x_input = self._sampling_from_mu_and_std(mu, std, cos_sin_heading)
             # import pdb; pdb.set_trace()
-            # x_input = x_input * self.rollout_mask  # For future rollouts, TODO: not working if pred_length != history_length
+            x_input = x_input * self.rollout_mask  # For future rollouts, TODO: not working if pred_length != history_length
             x_input = self.net_safety_mapper.safety_mapper_in_the_training_loop_forward(x_input)
             self.rollout_pos.append(x_input)
             self.G_pred_mean.append(torch.cat([mu, cos_sin_heading], dim=-1))

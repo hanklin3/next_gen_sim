@@ -54,8 +54,9 @@ with open(args.config) as file:
 save_result_path = args.save_result_path
 experiment_name = args.experiment_name
 if experiment_name == '':
-    experiment_name = configs['behavior_model_ckpt_dir'].split('/')[4]
+    experiment_name = configs['behavior_model_ckpt_dir'].split('/')[-3]
 print('experiment_name:', experiment_name)
+assert experiment_name != '' or experiment_name is None, f'experiment_name is empty {experiment_name}'
 configs["checkpoint_dir"] = os.path.join(save_result_path, experiment_name, "checkpoints")  # The path to save trained checkpoints
 configs["vis_dir"] = os.path.join(save_result_path, experiment_name, "vis_training")  # The path to save training visualizations
 os.makedirs(os.path.join(save_result_path, experiment_name), exist_ok=True)
