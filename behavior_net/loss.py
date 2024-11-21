@@ -44,11 +44,13 @@ class UncertaintyRegressionLoss(nn.Module):
                 # goal_indices is the index to upweight the goal position, eg. [-1, -5, -10]
                 assert y_pred_mean.dim() == 3
                 # assign y_pred_mean to 0 except at the index of goal_indices
+                # y_pred_mean is [32, 32, 10], x:[32, 32, 0:5], y:[32, 32, 5:]
+                # goal_indices needs to be [-1, -5]
                 y_pred_mean_zeroed = torch.zeros_like(y_pred_mean)
                 y_pred_mean_zeroed[:, :, goal_indices] = y_pred_mean[:, :, goal_indices]
                 y_true_zeroed = torch.zeros_like(y_true)
                 y_true_zeroed[:, :, goal_indices] = y_true[:, :, goal_indices]  
-                diff_goal_mean = torch.abs(y_pred_mean_zeroed- y_true_zeroed)
+                diff_goal_mean = torch.abs(y_true_zeroed- y_pred_mean_zeroed)
             else:
                 goal_weight = 0.0
             # print('diff_goal_mean', diff_goal_mean.shape) # [32, 32, 2*35]

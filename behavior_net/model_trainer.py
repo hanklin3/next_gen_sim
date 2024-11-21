@@ -58,6 +58,7 @@ class Trainer(object):
         self.path_to_traj_data = configs['path_to_traj_data']
         self.goal_indices = configs["goal_indices"]
         self.goal_weight = configs["goal_weight"]
+        self.goal_indices_half_output_dim = self.goal_indices + [x * self.pred_length for x in self.goal_indices]
         self.experiment_name = configs["experiment_name"]
 
         self.model_output = configs["model_output"]  # position or speed
@@ -402,7 +403,7 @@ class Trainer(object):
         gt_pos, mask_pos = self.gt[:, :, :int(self.output_dim / 2)], self.mask[:, :, :int(self.output_dim / 2)]
         gt_cos_sin_heading, mask_cos_sin_heading = self.gt[:, :, int(self.output_dim / 2):], self.mask[:, :, int(self.output_dim / 2):]
 
-        self.reg_loss_position = self.regression_loss_func_pos(G_pred_pos_at_step0, G_pred_std_pos_at_step0, gt_pos, weight=mask_pos, goal_indices=self.goal_indices, goal_weight=self.goal_weight)
+        self.reg_loss_position = self.regression_loss_func_pos(G_pred_pos_at_step0, G_pred_std_pos_at_step0, gt_pos, weight=mask_pos, goal_indices=self.goal_indices_half_output_dim, goal_weight=self.goal_weight)
         self.reg_loss_heading = 5 * self.regression_loss_func_heading(y_pred_mean=G_pred_cos_sin_heading_at_step0, y_pred_std=None, y_true=gt_cos_sin_heading, weight=mask_cos_sin_heading)
 
         D_pred_fake = self.net_D(self.G_pred_mean[0])
